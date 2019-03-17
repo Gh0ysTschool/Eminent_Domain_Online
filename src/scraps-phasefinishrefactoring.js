@@ -1,3 +1,99 @@
+           function choosewrapper(c){
+                if (app.get().game.displayinfo.allowformultipleselections){
+                    app.multiplechoose(c);
+                }
+                else{
+                    app.choose([c]);
+                }
+            };
+            function multiplechoose(choice){
+				let game = app.get().game;
+				if ( !game.choices.includes(choice) ) {
+					game.choices.push(choice);
+					choice.selected=true;
+				}
+				else{
+					let i = game.choices.indexOf(choice);
+					choice.selected=false;
+					game.choices.splice(i,1);
+				}
+				app.send({
+					'game':game
+				});
+			};
+            function choose(choices){
+				let game = app.get().game;
+                game.options=[];
+                for (let i in choices){
+					choices[i].selected=false;
+				}
+				game[game.displayinfo.choice_label]=choices;
+				app.send({
+					'game':game
+                });
+                game.displayinfo.callback();
+				//document.dispatchEvent(new Event('choicemade'));
+			};
+           function  offer (
+                skippable /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                multiple /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                [field_label, choices] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                choice_label='choices' /* label for where the choice is stored | set with game[label]=*/,
+                callback=app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
+            ) {
+                let {game:game} = app.get();
+                game.displayinfo.selectionzone=field_label;
+                game.displayinfo.allowformultipleselections=multiple;
+                game.displayinfo.showoptiontoskip=skippable;
+                game.displayinfo.choicelabel=choice_label;
+                game.displayinfo.callback=callback;
+                if (field_label == 'hand'){
+                    choices = app.get().game.acting_player.hand;
+                } else if (field_label == 'research') {
+                    choices = app.get().game.research_deck;
+                } else if (field_label == 'discard'){
+                    choices = app.get().game.acting_player.discard;
+                } else if (field_label == 'planets') {
+                    choices = app.get().game.planet_deck
+                } else if (field_label == 'rolecards'){
+                    choices = app.get().game.stacks.rolecards;
+                } else if (field_label == 'unsettled_planets') {
+                    choices = app.get().game.acting_player.unsettled_planets
+                } else if (field_label == 'settled_planets'){
+                    choices = app.get().game.acting_player.settled_planets;
+                } else if (field_label == 'conquered_planets'){
+                    choices = app.get().game.acting_player.conquered_planets;
+                } else if (field_label == 'settled_&_conquered_planets'){
+                    choices = [...app.get().game.acting_player.settled_planets, ...app.get().game.acting_player.conquered_planets];
+
+                } else if (field_label == 'options') {
+                }
+				if (skippable) {choices.push({'name':"Skip"})};
+				if (multiplechoice) {choices.push({'name':"Choose All Selected"})};
+				app.present_as_choice(choices);
+
+            };
+			function offer (skippable, multiplechoice, _choices, callback){
+				let choices = [..._choices];
+				let game = app.get().game;
+				let [,,,,...arr] = arguments;
+				let callbackwrapper = (e)=> { 
+					let condition1 = game.choices.length == 0;
+					let condition2 = game.choices.length > 1;
+					if (game.choices[0].name=='Skip') {callback=app.phasefinishfunction;}
+					if (condition1&&skippable) {callback('skipped')}
+					else if (condition1&&!skippable) {app.present_as_choice(choices);}
+					else if (condition2&&!multiplechoice) {app.present_as_choice(choices);}
+					else {
+						document.removeEventListener('choicemade',callbackwrapper);
+						callback(game.choices,...arr);
+					}
+				};
+				if (skippable) {choices.push({'name':"Skip"})};
+				if (multiplechoice) {choices.push({'name':"choose selected items"})};
+				app.present_as_choice(choices);
+				document.addEventListener('choicemade', callbackwrapper);
+			};
 phase = 
     {'gamephases':[
         //logic for detecting startofgame, endofgame, changeofpriority, and reseting the phasequeue

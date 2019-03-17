@@ -8,6 +8,8 @@ let game = {
         'showoptiontoskip':false,
         'allowformultipleselections':false,
         'center_or_planets':true, //true = center, false = planets
+        'choicelabel':'choice',
+        'callback':()=>{app.phasefinishfunction}
     },
     'influence':[1,1,1,1,1,
         1,1,1,1,1,

@@ -1,0 +1,39 @@
+add triangular tab button to display research cards
+add triangular tab button to display planets
+switch choosewrapper to focus in on the cards  and display a back button, a choose option if its a choice, and an add to selection options if its multiple choice
+research web socket lib for exchange of state
+add a clientid,
+construct a server that'll deliver the App with a clientid linked to the game session
+impliment a reset game function
+calcwinner function
+endgame if the influence pile is empty and the round has finished
+endgame if x stacks are empty and the round has finished
+change leader role/follow role and action functions when a stack changes
+add planet, production zone, handsize, and icons images
+
+select new game or existing game
+    new
+        how many players
+        name your player
+    existing
+        type in game key
+        nme your player
+    get assigned a player id
+    display your playingfield while its your turn
+    when active_player is different id  
+        display other players playerd cards and limbo cards
+        
+
+
+
+
+
+game.subchoices     // where the phases can store temporary state
+app.choosewrapper() // based on meta data and what phase / subphase it is, 
+                    // apply the choice and call phasefinishfunction
+app.offer(
+        boolean /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+        boolean /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+        [string,array] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|unsettled_planets|settled_&_conquered_planets|research|rolecards'}, sets choices=array if specified*/, 
+        string /* label for where the choice is stored | set with game[label]=*/ 
+        callback /*callback that handles the choice or finishes the phase*/, 

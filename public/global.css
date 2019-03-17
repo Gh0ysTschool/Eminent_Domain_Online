@@ -1,0 +1,195 @@
+html, body {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+body {
+	color: #333;
+	margin: 0;
+	padding: 8px;
+	box-sizing: border-box;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	color:white;
+}
+
+a {
+	color: rgb(0,100,200);
+	text-decoration: none;
+}
+.selectable{
+	border: solid rgb(53, 223, 27);
+	border-width: 4px;
+	border-left-width: 2px;
+	border-right-width: 2px;
+}
+.selected{
+	border: solid rgb(44, 92, 37);
+	border-width: 4px;
+	border-left-width: 2px;
+	border-right-width: 2px;
+}
+
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:visited {
+	color: rgb(0,80,160);
+}
+
+label {
+	display: block;
+}
+
+input, button, select, textarea {
+	font-family: inherit;
+	font-size: inherit;
+	padding: 0.4em;
+	margin: 0 0 0.5em 0;
+	box-sizing: border-box;
+	border: 1px solid #ccc;
+	border-radius: 2px;
+}
+
+input:disabled {
+	color: #ccc;
+}
+
+input[type="range"] {
+	height: 0;
+}
+
+button {
+	background-color: #f4f4f4;
+	outline: none;
+}
+
+.flex {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+}
+.playerinfo {
+	display: flex;
+	flex-direction: row;
+	justify-content:flex-start;
+	width: 100%;
+	height: 10%;
+}
+
+.playingfield {
+   overflow: hidden;
+   height:100%;
+   width: 100%;
+   background-image: url("./images/embackground.png");
+   background-repeat: no-repeat;
+   background-size: cover;
+}
+.options{
+	background-image: url("./images/embackground.png");
+	background-repeat: no-repeat;
+	display:flex; 
+	flex-direction:row; 
+	position: absolute; 
+	right:30%;
+	top: 50%;
+	height: 25%;
+	width:40%;
+	font-size: 300%;
+}
+.ownedcards{
+	display: flex;
+	flex-direction: row;
+	height:20%;
+}
+.hand{
+	margin: auto;
+	display: flex;
+	flex-direction: row;
+	max-width: 90%;
+	max-height: 100%;
+	overflow-x: scroll;
+	overflow-y: hidden;
+}
+.hand > img{
+	position:relative;
+	height:175px;
+	
+}
+.deck{
+	max-width: 5%;
+	margin-right:auto;
+}
+.discard{
+	max-width: 5%;
+	margin-left:auto;
+}
+
+button:active {
+	background-color: #ddd;
+}
+
+button:focus {
+	border-color: #666;
+}
+.zone {
+    width: 100%;
+	overflow-x: scroll;
+	display:flex;
+	flex-direction: row;
+}
+.centerrow{
+	height:40%;
+}
+.researchrow{
+	height:40%;
+}
+.researchrow > div{
+	height:95%;
+}
+.researchrow > div >img{
+	width: auto;
+	height: 100%;
+}
+.centerrow > div > img{
+	height:95%;
+}
+.playedcards{
+	height:20%;
+	overflow-x:hidden;
+}
+.minicard{
+	height:100%;
+}
+.cutcard{
+}
+.bordered{
+	border: solid #000;
+	border-width: 1px;
+
+}
+::-webkit-scrollbar { 
+    display: none;  
+}
+.playercountselector > p{
+	height:33%; 
+	text-align: center; 
+	font-size: 300%;
+	background-color: rgb(34, 26, 59);
+	border: solid #000;
+	border-width: 1px;
+}
+.passtoplayer{
+	height:80%;
+	width:100%;
+	top:10%;
+	border: solid #000;
+	border-width: 1px;
+	text-align: center;
+	font-size: 300%;
+	color:white;
+	background-color: rgb(34, 26, 59);
+
+}

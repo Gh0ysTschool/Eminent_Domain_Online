@@ -3,31 +3,31 @@ phase =
         'gamephases':
         [
         //logic for detecting startofgame, endofgame, changeofpriority, and reseting the phasequeue
-        {
-            'start':
-            [
-                {
-                    'set active player':
-                        ()=>{ 
-                            if (!app.get().game.started){
-                                let game = app.get().game;
-                                game.started = true;
-                                game.passt=false;
-                                app.set({'game':game});
-                                game = app.get().game;
-                                game.leading_player_index = (game.leading_player_index+1)%game.number_of_players;
-                                game.acting_player_index=game.leading_player_index;
-                                game.leadingplayer = game.players[game.leading_player_index];
-                                game.acting_player = game.players[game.leading_player_index];
-                                app.send({'game':game});
-                                document.dispatchEvent(new Event('pass_turn'));
-                                
+            {
+                'start':
+                [
+                    {
+                        'set active player':
+                            ()=>{ 
+                                if (!app.get().game.started){
+                                    let game = app.get().game;
+                                    game.started = true;
+                                    game.passt=false;
+                                    app.set({'game':game});
+                                    game = app.get().game;
+                                    game.leading_player_index = (game.leading_player_index+1)%game.number_of_players;
+                                    game.acting_player_index=game.leading_player_index;
+                                    game.leadingplayer = game.players[game.leading_player_index];
+                                    game.acting_player = game.players[game.leading_player_index];
+                                    app.send({'game':game});
+                                    document.dispatchEvent(new Event('pass_turn'));
+                                    
+                                }
+                                app.phasefinishfunction();
                             }
-                            app.phasefinishfunction();
-                        }
-                }
-            ]
-      },
+                    }
+                ]
+            },
         //action selection
         //action execution
         //placeholder phase for action to push it's own phases to the queue
@@ -557,7 +557,7 @@ phase =
                 // improved_trade : 1
                 //      -> improved_trade
                 {
-                    '':
+                    'Trading your Stocks and Bonds':
                         ()=>{
                             if (app.get().game.acting_player.activeaction != 'improved_trade' ){
                                 app.phasefinishfunction();
@@ -848,12 +848,12 @@ phase =
                     'Adding Role Card to your Machine Learning Model':
                         ()=>{
                             if (app.get().game.acting_player.activeaction != 'artificial_intelligence'){
-                                app.phasefinishfunction();();
+                                app.phasefinishfunction();
                             } else {    
-                                let {game:game,game{acting_player:player}}=app.get();
+                                let {game:game,game:{acting_player:player}}=app.get();
                                 if (game.stacks.pilecount[game.choices[0].type] >= 1){
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
-                                    game.stacks.pilecount[selected_center_card.type]--;
+                                    game.stacks.pilecount[game.choices[0].type]--;
                                 }
                                 app.set({'game':game});
                                 app.phasefinishfunction();
@@ -880,9 +880,9 @@ phase =
                     'Adding Role Card to your Machine Learning Model':
                         ()=>{
                             if (app.get().game.acting_player.activeaction != 'artificial_intelligence'){
-                                app.phasefinishfunction();();
+                                app.phasefinishfunction();
                             } else {    
-                                let {game:game,game{acting_player:player}}=app.get();
+                                let {game:game,game:{acting_player:player}}=app.get();
                                 if (game.stacks.pilecount[game.choices[0].type] >= 1){
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
                                     game.stacks.pilecount[selected_center_card.type]--;
@@ -943,16 +943,45 @@ phase =
                 //      choose card(s) from hand
                 //          -> research
                 {
-                    '':
-                        ()=>{}
+                    'Drawing Your Cards':
+                        ()=>{
+                            if (app.get().game.acting_player.activeaction != 'data_network'){
+                                app.phasefinishfunction();
+                            } else {    
+                                app.draw(app.get().game.acting_player);
+                                app.draw(app.get().game.acting_player);
+                                app.phasefinishfunction();
+                            }
+                        }
                 },
                 {
-                    '':
-                        ()=>{}
+                    'Choose any number of Cards from your Hand to Remove from the Game':
+                        ()=>{
+                            if (app.get().game.acting_player.activeaction != 'data_network'){
+                                app.phasefinishfunction();
+                            } else {    
+                                app.offer(
+                                    true /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                                    true /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                                    ['hand'] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                    'choices' /* label for where the choice is stored | set with game[label]=*/,
+                                    app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
+                                );
+                                app.phasefinishfunction();
+                            }
+                        }
                 },
                 {
-                    '':
-                        ()=>{}
+                    'Removing the Selected Cards from the Game':
+                        ()=>{
+                            if (app.get().game.acting_player.activeaction != 'data_network' || app.get().game.choices[0].name == 'Skip'){
+                                app.phasefinishfunction();
+                            } else {    
+                                let { game:game, game: { choices:choices, acting_player:player } } = app.get();
+                                app.research(choices,player,choices.length);
+                                app.phasefinishfunction();
+                            }
+                        }
                 },
 
             ]

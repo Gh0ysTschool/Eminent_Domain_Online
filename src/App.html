@@ -22,11 +22,10 @@
 		{#each game.players as player}
 			{#if game.acting_player!==undefined && game.acting_player.id==player.id}
 				<div class="bordered playingfield">
-					<div class="bordered">{game.messagetoplayer[game.messagetoplayer.length-1]}</div>
 					<div class="playerinfo bordered">
-							<div style="width:33%; text-align: center;" class="bordered"> Military Might {player.starfighters.small}</div>
-							<div style="width:33%; text-align: center;" class="bordered"> Galactic Influence {player.influence.length}</div>
-							<div style="width:33%; text-align: center;" class="bordered"> Remaining Influence throughout the Galaxy {game.influence.length}</div>
+						<div style="width:33%; text-align: center;" class="bordered"> Military Might {player.starfighters.small}</div>
+						<div style="width:33%; text-align: center;" class="bordered"> Galactic Influence {player.influence.length}</div>
+						<div style="width:33%; text-align: center;" class="bordered"> Remaining Influence throughout the Galaxy {game.influence.length}</div>
 					</div>
 					<!-- stacks / planets toggle -->
 					<div on:click="toggle_center_or_planets()" on:tap="toggle_center_or_planets()">
@@ -45,8 +44,8 @@
 						<div class="flex zone centerrow">
 							{#each game.stacks.rolecards as card}
 							<div>
-								<img on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="{(game.displayinfo.selectionzone=='rolecards') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}" src="./images/{card.type}100.png" alt="{card.name}">
-                                <div style="position:absolute; top:55% "> {game.stacks.pilecount[card.type]} remaining</div>
+								<img on:click="choosewrapper(card)" on:tap="choosewrapper(card)" on:touchstart="drag(event,card)" on:touchend="drop(event)" class="{(game.displayinfo.selectionzone=='rolecards') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}" src="./images/{card.type}100.png" alt="{card.name}">
+                                <div class="pilecount"> {game.stacks.pilecount[card.type]}</div>
 							</div>
 							{/each}
 						</div>
@@ -90,14 +89,18 @@
 						</div>
 					{/if}
 					<!-- played cards-->
-					<div class="flex zone playedcards">
+					<div id="playedcards" class="flex zone playedcards" >
 						{#if game.displayinfo.showoptiontoskip}
 							<div style="margin-right:auto" class="selectable" on:click="choose([{name:'Skip'}])" on:tap="choose([{name:'Skip'}])">[Choose None]</div>
 						{:else}
 							<div style="margin-right:auto" class="bordered">[____]</div>
 						{/if}
 						{#each player.limbo as card}
-							{#if card.type != "advanced" && card.type != "fertile" && card.type != "metallic"}
+							{#if card.research_cost !== undefined}
+							<div class="bordered">
+								<img class="minicard" src="{card.imgurl}"  alt="{card.name}">
+							</div>
+							{:elseif card.type != "advanced" && card.type != "fertile" && card.type != "metallic"}
 								<div class="bordered">
 									<img class="minicard" src="./images/{card.type}100.png"  alt="{card.name}">
 								</div>
@@ -108,18 +111,23 @@
 							{:elseif game.passt}
 								<div style="margin-left:auto" class="selectable" on:click="pass_turn()" on:tap="pass_turn()">[End Turn]</div>
 							{:elseif game.displayinfo.allowformultipleselections && game.choices.length>0}
-								<div style="margin-left:auto" class="selectable" on:click="choose(game.choices)" on:tap="choose(game.choices)">[Choose Selected]</div>
+								<div style="margin-left:auto" class="selectable" on:click="choose(game[game.displayinfo.choicelabel])" on:tap="choose(game[game.displayinfo.choicelabel])">[Choose Selected]</div>
 						{:else}
 							<div class="bordered" >[______]</div>
 						{/if}
 					</div>
+					<div class="messagetoplayer bordered">{game.messagetoplayer[game.messagetoplayer.length-1]}</div>
 					<!-- hand -->
 					<div class="flex zone ownedcards">
 						<div class='bordered deck'> cards remaining in deck: {player.deck.length}</div>
                         <div class='hand'>
-                            {#each player.hand as card}
-                                    <img src="./images/{card.type}100.png" alt="{card.name}" on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}">
-                            {/each}
+							{#each player.hand as card}
+								{#if card.research_cost !== undefined}
+									<img src="{card.imgurl}"  alt="{card.name}" on:touchstart="drag(event, card)" on:touchend="drop(event)" on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'hidden' : 'selectable' ): 'bordered'}">
+								{:else}
+									<img src="./images/{card.type}100.png" alt="{card.name}" on:touchstart="drag(event,card)" on:touchend="drop(event)" on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'hidden' : 'selectable' ): 'bordered'}">
+								{/if}	
+							{/each}
                         </div>
 						<div class="bordered discard"> cards in discard pile: {player.discard.length}</div>
 					</div>
@@ -141,58 +149,105 @@
 <script>
 	export default {
 		methods:{
-			multiplechoose(choice){
+			choosewrapper(c){
+                if (app.get().game.displayinfo.allowformultipleselections){
+                    app.multiplechoose(c);
+                }
+                else{
+                    app.choose([c]);
+                }
+            },
+            multiplechoose(choice){
 				let game = app.get().game;
-				if(!game.choices.includes(choice)){
-					game.choices.push(choice);
+				if ( !game[game.displayinfo.choicelabel].includes(choice) ) {
+					game[game.displayinfo.choicelabel].push(choice);
 					choice.selected=true;
+					if (choice.type!=='planet'){
+						choice.final_destination_label='discard';
+					 	game.acting_player.limbo.push(choice);
+						game.acting_player.hand = game.acting_player.hand.filter(
+							(el)=>{ return el.identifier != choice.identifier}
+						)
+					}
 				}
 				else{
-					let i = game.choices.indexOf(choice);
+					//let i = game[game.displayinfo.choicelabel].indexOf(choice);
 					choice.selected=false;
-					game.choices.splice(i,1);
+					//game[game.displayinfo.choicelabel].splice(i,1);
+					if (choice.type!=='planet'){
+					 	game.acting_player.hand.push(choice);
+						game.acting_player.limbo = game.acting_player.limbo.filter(
+							(el)=>{ return el.identifier != choice.identifier}
+						)
+					}
 				}
 				app.send({
 					'game':game
 				});
 			},
-			choose(choices){
+            choose(choices){
 				let game = app.get().game;
-				game.options=[];
-				game.choices=choices;
-				for (let i in choices){
+                game.options=[];
+                for (let i in choices){
 					choices[i].selected=false;
 				}
+				game[game.displayinfo.choicelabel]=choices;
 				app.send({
 					'game':game
-				});
-				document.dispatchEvent(new Event('choicemade'));
+                });
+                game.displayinfo.callback();
+				//document.dispatchEvent(new Event('choicemade'));
 			},
-			offer (skippable, multiplechoice, _choices, callback){
-				let choices = [..._choices];
-				let game = app.get().game;
-				let [,,,,...arr] = arguments;
-				let callbackwrapper = (e)=> { 
-					let condition1 = game.choices.length == 0;
-					let condition2 = game.choices.length > 1;
-					if (game.choices[0].name=='Skip') {callback=app.phasefinishfunction;}
-					if (condition1&&skippable) {callback('skipped')}
-					else if (condition1&&!skippable) {app.present_as_choice(choices);}
-					else if (condition2&&!multiplechoice) {app.present_as_choice(choices);}
-					else {
-						document.removeEventListener('choicemade',callbackwrapper);
-						callback(game.choices,...arr);
-					}
-				};
-				if (skippable) {choices.push({'name':"Skip"})};
-				if (multiplechoice) {choices.push({'name':"choose selected items"})};
+            offer (
+                skippable /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                multiple /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                [field_label, choices] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                choice_label /* label for where the choice is stored | set with game[label]=*/,
+                callback /*callback that handles the choice or finishes the phase*/, 
+            ) {
+                let {game:game} = app.get();
+                game.displayinfo.selectionzone=field_label;
+                game.displayinfo.allowformultipleselections=multiple;
+                game.displayinfo.showoptiontoskip=skippable;
+                game.displayinfo.choicelabel=choice_label;
+                game.displayinfo.callback=callback;
+                if (field_label == 'hand'){
+                    choices = app.get().game.acting_player.hand;
+                } else if (field_label == 'research') {
+                    choices = app.get().game.research_deck;
+                } else if (field_label == 'discard'){
+                    choices = app.get().game.acting_player.discard;
+                } else if (field_label == 'planets') {
+                    choices = app.get().game.planet_deck;
+                } else if (field_label == 'rolecards'){
+                    choices = app.get().game.stacks.rolecards;
+					game.displayinfo.center_or_planets = true;
+                } else if (field_label == 'unsettled_planets') {
+					choices = app.get().game.acting_player.unsettled_planets;
+					game.displayinfo.center_or_planets = false;
+                } else if (field_label == 'settled_planets'){
+                    choices = app.get().game.acting_player.settled_planets;
+					game.displayinfo.center_or_planets = false;
+                } else if (field_label == 'conquered_planets'){
+                    choices = app.get().game.acting_player.conquered_planets;
+					game.displayinfo.center_or_planets = false;
+                } else if (field_label == 'settled_&_conquered_planets'){
+                    choices = [...app.get().game.acting_player.settled_planets, ...app.get().game.acting_player.conquered_planets];
+					game.displayinfo.center_or_planets = false;
+
+                } else if (field_label == 'options') {
+				}
+				game[choice_label] = [];
+				app.send({'game':game});
+				//if (skippable) {choices.push({'name':"Skip"})};
+				//if (multiple) {choices.push({'name':"Choose All Selected"})};
 				app.present_as_choice(choices);
-				document.addEventListener('choicemade', callbackwrapper);
-			},
+
+            },
 			discard(source_array, destination_array, identifier){
 				let temp_array = [];
 				let removed = false;
-				for (let i = 0; i < source_array.length; i++){
+				for (let i in source_array){
 					let elem = source_array.pop();
 					if (identifier == elem.identifier && !removed) { 
 						destination_array.push(elem);
@@ -656,7 +711,6 @@
 			present_as_choice(options){
 				let game = app.get().game;
 				game.options=options;
-				game.choices=[];
 				app.send({'game':game});
 			},
 			settle_colonies (planet, possessing_player){
@@ -677,7 +731,7 @@
 					else { temp_array.push(elem) }; 
 				}
 				for (let i in temp_array){
-					player.unsettled_planets.push(temp_array[i]);
+					possesing_player.unsettled_planets.push(temp_array[i]);
 				}
 			},
 			//pass_turn leadingplayer->nextplayer
@@ -687,23 +741,25 @@
 				if (game.leadingplayer.rounds!==undefined){
 					game.leadingplayer.rounds++;
 				}
+				game.passt=false;
 				game.leading_player_index = (game.leading_player_index+1)%game.number_of_players;
 				game.acting_player_index=game.leading_player_index;
 				game.leadingplayer = game.players[game.leading_player_index];
 				game.acting_player = game.players[game.leading_player_index];
 				app.send({'game':game});
-				document.dispatchEvent(new Event('pass_turn'));
-				//phase_finishingfunction();
+				//document.dispatchEvent(new Event('pass_turn'));
+				app.phasefinishfunction();
 			},
 			//pass_priority actingplayer->nextplayer
 			pass_priority(){
 				app.togglepasstoplayer();
 				let game = app.get().game;
+				game.passp=false;
 				game.acting_player_index = (game.acting_player_index+1)%game.number_of_players;
 				game.acting_player = game.players[game.acting_player_index];
 				app.send({'game':game});
 				document.dispatchEvent(new Event('pass_priority'));
-				//phase_finishingfunction();
+				app.phasefinishfunction();
 			},
 			//determine_number_of_players logic->options->choice->number_of_players
 			determine_number_of_players(callback){
@@ -1051,6 +1107,7 @@
 					{
 						'identifier':app.generate_unique_identifier(),
 						type : 'politics',
+                		'selected':false,
 						action : (callback)=>{
 							let callbackwrapper = ()=>{ 	
 								document.removeEventListener('choicemade',callbackwrapper); 
@@ -1098,14 +1155,6 @@
 				let game = app.get().game;
 				game.passtoplayer = !game.passtoplayer;
 				app.send({'game':game});
-			},
-			choosewrapper(c){
-				if (app.get().game.displayinfo.allowformultipleselections){
-					app.multiplechoose(c);
-				}
-				else{
-					app.choose([c]);
-				}
 			},
 			class_gen(zone, item){
 				return (app.get().game.displayinfo.selectionzone==zone) 
@@ -1169,6 +1218,27 @@
 					array[randomIndex] = temporaryValue;
 				}
 				return array;
+			},
+			drag(evt,item){
+				let game = app.get().game;
+				game.displayinfo.dragged=item;
+				app.set({'game':game});
+			},
+			drop(evt){
+				let el = document.getElementById('playedcards').getBoundingClientRect();
+				if (evt.changedTouches[0].clientX > el.left
+				&& evt.changedTouches[0].clientX < el.left+ el.width
+				&& evt.changedTouches[0].clientY < el.top+el.height
+				&& evt.changedTouches[0].clientY > el.top){
+					let game = app.get().game;
+					if(game.displayinfo.dragged!==null) app.choosewrapper(game.displayinfo.dragged);
+					game.displayinfo.dragged!=null;
+					app.set({'game':game});
+
+				}
+			},
+			move(evt){
+				evt.preventDefault();
 			}
 		}
 	}

@@ -1,12 +1,12 @@
-           function choosewrapper(c){
+           choosewrapper(c){
                 if (app.get().game.displayinfo.allowformultipleselections){
                     app.multiplechoose(c);
                 }
                 else{
                     app.choose([c]);
                 }
-            };
-            function multiplechoose(choice){
+            },
+            multiplechoose(choice){
 				let game = app.get().game;
 				if ( !game.choices.includes(choice) ) {
 					game.choices.push(choice);
@@ -20,8 +20,8 @@
 				app.send({
 					'game':game
 				});
-			};
-            function choose(choices){
+			},
+            choose(choices){
 				let game = app.get().game;
                 game.options=[];
                 for (let i in choices){
@@ -33,8 +33,8 @@
                 });
                 game.displayinfo.callback();
 				//document.dispatchEvent(new Event('choicemade'));
-			};
-           function  offer (
+			},
+            offer (
                 skippable /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                 multiple /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
                 [field_label, choices] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
@@ -72,7 +72,7 @@
 				if (multiplechoice) {choices.push({'name':"Choose All Selected"})};
 				app.present_as_choice(choices);
 
-            };
+            },
 			function offer (skippable, multiplechoice, _choices, callback){
 				let choices = [..._choices];
 				let game = app.get().game;

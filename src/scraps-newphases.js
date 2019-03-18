@@ -28,11 +28,9 @@ phase =
                     }
                 ]
             },
-        //action selection
-        //action execution
-        //placeholder phase for action to push it's own phases to the queue
-            // action name : total subphases
-       
+        // action : 2
+        //      choose from hand an action to play or skip
+        //      -> set as activeaction
         {
             'action':
             [
@@ -987,8 +985,12 @@ phase =
             ]
         },
        
-        // role selection (offers roles)
-        // sets selected role as selected, 
+        // choose role : 2
+        //      choose between center rolecards to lead with
+        //      -> lead with role
+        // boosting cards :2 
+        //      choose card(s) from hand to boost with
+        //      -> boost role
         {
             'role':
             [
@@ -1023,36 +1025,30 @@ phase =
             ]
         },
         
-        //boosting cards offer
-        //boosting cards selection
-        //role execution (
-            // modifies game state in prep,
-            // pushes new phases to the queue)
-        //placeholder phase for role to push it's own phases to the queue
-        //placeholder phase for role to push it's own phases to the queue
-            // action name : total subphases
-            // colonize : 5 (can conjoin to 4)
-            //     settle or colonize
-            //      -> choose planet
-            //         -> settle
-            //      -> choose planet
-            //         -> colonize
-            // producetrade : 5
-            //      produce or trade
-            //      -> select an empty productionzone
-            //          -> produce
-            //      -> select an occupied productionzone
-            //          -> trade
-            // research : 2
-            //      choose card(s) from hand
-            //      -> research
-            // survey : 1
-            //      -> survey
-            // warfare : 4
-            //      attack or collect
-            //          -> collect
-            //          -> choose planet
-            //              -> conquer
+        
+    
+        // colonize : 5 (can conjoin to 4)
+        //     settle or colonize
+        //      -> choose planet
+        //         -> settle
+        //      -> choose planet
+        //         -> colonize
+        // producetrade : 5
+        //      produce or trade
+        //      -> select an empty productionzone
+        //          -> produce
+        //      -> select an occupied productionzone
+        //          -> trade
+        // research : 2
+        //      choose card(s) from hand
+        //      -> research
+        // survey : 1
+        //      -> survey
+        // warfare : 4
+        //      attack or collect
+        //          -> collect
+        //          -> choose planet
+        //              -> conquer
         {
             'lead':
             [
@@ -1464,40 +1460,39 @@ phase =
                 },
             ]
         },
-        //dissent offer
-        //dissent or follow selection
-        //boosting cards offer
-        //boosting cards selection
-        //role execution (
-            // modifies game state in prep,
-            // pushes new phases to the queue)
-        //placeholder phase for role to push it's own phases to the queue
-            // action name : total subphases
-            // colonize : 5 (can conjoin to 4)
-            //     settle or colonize
-            //      -> choose planet
-            //         -> settle
-            //      -> choose planet
-            //         -> colonize for each symbol
-            // produce : 2
-            //      -> select an empty productionzone for each symbol
-            //          -> produce
-            // trade : 2
-            //      -> select an occupied productionzone for each symbol
-            //          -> trade
-            // research : 2
-            //      choose card from research pile
-            //      -> choose side (situational)
-            //          -> research
-            // survey : 1
-            //      -> explore for each symbol
-            //      choose planet
-            //      -> survey
-            // warfare : 4
-            //      attack or collect
-            //          -> collect fighter for each symbols
-            //          -> choose planet
-            //              -> conquer
+         // dissent : 2
+        //      choose between dissent or follow
+        //      -> dissent
+        //      -> follow
+        // boosting cards :2 
+        //      choose card(s) from hand to boost with
+        //      -> boost role
+        // action name : total subphases
+        // colonize : 5 (can conjoin to 4)
+        //     settle or colonize
+        //      -> choose planet
+        //         -> settle
+        //      -> choose planet
+        //         -> colonize for each symbol
+        // produce : 2
+        //      -> select an empty productionzone for each symbol
+        //          -> produce
+        // trade : 2
+        //      -> select an occupied productionzone for each symbol
+        //          -> trade
+        // research : 2
+        //      choose card from research pile
+        //      -> choose side (situational)
+        //          -> research
+        // survey : 1
+        //      -> explore for each symbol
+        //      choose planet
+        //      -> survey
+        // warfare : 4
+        //      attack or collect
+        //          -> collect fighter for each symbols
+        //          -> choose planet
+        //              -> conquer
         {
             'follow':
             [

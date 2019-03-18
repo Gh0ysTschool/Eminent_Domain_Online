@@ -6,6 +6,32 @@ html, body {
 .hidden {
 	display: none;
 }
+.settle_cost{
+	position: absolute;
+	top: 18%;
+	left: 54%;
+	font-size: 120%;
+}
+.conquer_cost{
+	position: absolute;
+	top: 18%;
+	left: 24%;
+	font-size: 120%;
+}
+.hosted_colonies{
+	position: absolute;
+	bottom:10%;
+	left:20%;
+	font-size: 120%;
+}
+.unsettled > img{
+	width: auto;
+	height: 100%;
+}
+.unsettled {
+	height: 40%;
+	position: absolute;
+}
 .pilecount{
 	position:relative;
 	font-size: 200%;
@@ -147,6 +173,7 @@ button:focus {
 .zone {
     width: 100%;
 	overflow-x: scroll;
+	overflow-y: hidden;
 	display:flex;
 	flex-direction: row;
 }

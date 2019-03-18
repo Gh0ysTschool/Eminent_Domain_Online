@@ -53,11 +53,11 @@
 					{#if !game.displayinfo.center_or_planets}
 						<div class="flex zone centerrow">
 							{#each player.unsettled_planets as planet}
-                                <div on:click="choosewrapper(planet)" on:tap="choosewrapper(planet)" class="{(game.displayinfo.selectionzone=='unsettled_planets') ? ( (planet.selected) ? 'selected' : 'selectable' ): 'bordered'}">
-                                    <p> {planet.name}</p>
-                                    <p> settle {planet.settle_cost}</p>
-                                    <p> conquer {planet.conquer_cost}</p>
-                                    <p> colonies {planet.hosted_colonies.length}</p>
+                                <div on:click="choosewrapper(planet)" on:tap="choosewrapper(planet)" class=" unsettled {(game.displayinfo.selectionzone=='unsettled_planets') ? ( (planet.selected) ? 'selected' : 'selectable' ): 'bordered'}">
+									<img src="./images/{planet.type}back100.png">
+                                    <span class="settle_cost"> {planet.settle_cost}</span>
+                                    <span class="conquer_cost"> {planet.conquer_cost}</span>
+									<span class="hosted_colonies"> {planet.hosted_colonies.length} colonies</span>
                                 </div>
 							{/each}
                             {#each [...player.settled_planets, ...player.conquered_planets] as planet}
@@ -162,7 +162,7 @@
 				if ( !game[game.displayinfo.choicelabel].includes(choice) ) {
 					game[game.displayinfo.choicelabel].push(choice);
 					choice.selected=true;
-					if (choice.type!=='planet'){
+					if (choice.type!=='planet' || choice.type!=='fertile' || choice.type!=='metallic' || choice.type!=='advanced'){
 						choice.final_destination_label='discard';
 					 	game.acting_player.limbo.push(choice);
 						game.acting_player.hand = game.acting_player.hand.filter(

@@ -3,6 +3,7 @@ let nonce = 0;
 let game = {
     'passtoplayer':false,
     'nonce':0,
+    'nextphase':()=>{},
     'displayinfo':{
         'selectionzone':'',
         'dragged':null,
@@ -40,7 +41,7 @@ let game = {
                                 let game = app.get().game;
                                 game.started = true;
                                 game.passt=false;
-                                app.set({'game':game});
+                                app.send({'game':game});
                                 game = app.get().game;
                                 game.leading_player_index = (game.leading_player_index+1)%game.number_of_players;
                                 game.acting_player_index=game.leading_player_index;
@@ -185,7 +186,6 @@ let game = {
                             if (app.get().game.acting_player.activeaction != 'colonize' || app.get().game.choices[0].name != 'colonize'){
                                 app.phasefinishfunction();
                             } else {
-                                console.log(app.get().game.subchoices[0], app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'colonize'})[0]);    
                                 app.colonize(app.get().game.subchoices[0], app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'colonize'})[0]);
                                 app.phasefinishfunction();
                             }
@@ -831,7 +831,7 @@ let game = {
                 {
                     'Terraforming your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.acting_player.activeaction != 'terraforming' || app.get().game.choices[0].name != 'colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.colonize(app.get().game.choices[0], app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'terraforming'})[0]);
@@ -891,7 +891,7 @@ let game = {
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
                                     game.stacks.pilecount[game.choices[0].type]--;
                                 }
-                                app.set({'game':game});
+                                app.send({'game':game});
                                 app.phasefinishfunction();
                             }
                         }
@@ -923,7 +923,7 @@ let game = {
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
                                     game.stacks.pilecount[selected_center_card.type]--;
                                 }
-                                app.set({'game':game});
+                                app.send({'game':game});
                                 app.phasefinishfunction();
                             }
                         }
@@ -1272,7 +1272,7 @@ let game = {
                             if (app.get().game.acting_player.activerole != 'producetrade' || app.get().game.choices[0].name != 'produce'){
                                 app.phasefinishfunction();
                             } else {
-                                ///app.set( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
+                                ///app.send( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
                                 let game = app.get().game;
                                 game.acting_player.activerole='produce';
                                 app.send({'game':game});
@@ -1741,7 +1741,7 @@ let game = {
                         if (app.get().game.acting_player.activerole != 'produce'){
                             app.phasefinishfunction();
                         } else {
-                            ///app.set( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
+                            ///app.send( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
                             let game = app.get().game;
                             game.acting_player.activerole='produce';
                             app.send({'game':game});

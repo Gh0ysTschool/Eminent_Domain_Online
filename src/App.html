@@ -182,17 +182,17 @@
 				</div>
 			{/if}
 		{/each}
+		<!-- game.options -->
+		{#if game.displayinfo.selectionzone=='options'}
+			<div class="options">
+				{#each game.options as option}
+					<div style="width:50%; color:blue" class="{(game.displayinfo.selectionzone=='options') ? ( (option.selected) ? 'selected' : 'selectable' ): 'bordered'}" on:click="choosewrapper(option)" on:tap="choosewrapper(option)">
+						{option.name}
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
-	<!-- game.options -->
-	{#if game.displayinfo.selectionzone=='options'}
-		<div class="options">
-			{#each game.options as option}
-                <div style="width:50%; color:blue" class="{(game.displayinfo.selectionzone=='options') ? ( (option.selected) ? 'selected' : 'selectable' ): 'bordered'}" on:click="choosewrapper(option)" on:tap="choosewrapper(option)">
-                    {option.name}
-                </div>
-			{/each}
-		</div>
-	{/if}
 {/if}
 <script>
 	export default {
@@ -243,7 +243,7 @@
 				app.send({
 					'game':game
                 });
-                game.displayinfo.callback();
+                app.phasefinishfunction();//game.displayinfo.callback();
 				//document.dispatchEvent(new Event('choicemade'));
 			},
             offer (
@@ -253,12 +253,12 @@
                 choice_label /* label for where the choice is stored | set with game[label]=*/,
                 callback /*callback that handles the choice or finishes the phase*/, 
             ) {
-                let {game:game} = app.get();
+                let game = app.get().game;
                 game.displayinfo.selectionzone=field_label;
                 game.displayinfo.allowformultipleselections=multiple;
                 game.displayinfo.showoptiontoskip=skippable;
                 game.displayinfo.choicelabel=choice_label;
-                game.displayinfo.callback=callback;
+                //game.displayinfo.callback=callback;
                 if (field_label == 'hand'){
                     choices = app.get().game.acting_player.hand;
                 } else if (field_label == 'research') {
@@ -323,7 +323,7 @@
 					}
 					players[i].influence = inf;
 				}
-				app.set({'game':{'players':players},...app.get().game});
+				app.send({'game':{'players':players},...app.get().game});
 			},
 			endgame(){
 				
@@ -381,9 +381,9 @@
 			},
 			send(state){
 				app.set(state);
-				// if (app.get().game.ws!==undefined){
-				// 	app.sendstate();
-				// }
+				if (app.get().game.ws!==undefined){
+					app.sendstate();
+				}
 			},
 			generate_research_card(name){
 				let _card={
@@ -1029,7 +1029,7 @@
 			generate_unique_identifier(){
 				let game = app.get().game;
 				game.nonce++;	
-				app.set({'game':game});
+				app.send({'game':game});
 				return game.nonce;
 			},
 			performleaderrole(callback=null){
@@ -1179,7 +1179,7 @@
 						image : null
 					}
 				];
-				app.set({'game':game});
+				app.send({'game':game});
 				return deck;
 			},
 			initgame(number_of_players){
@@ -1249,7 +1249,7 @@
 				//for(let i = 0; i < game.nonce; i++){
 					game.game_id += Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 10);
 				//}
-				app.set({'game':game});
+				app.send({'game':game});
 			},
 			knuthshuffle(array) {
 				let currentIndex = array.length;
@@ -1270,7 +1270,7 @@
 			drag(evt,item){
 				let game = app.get().game;
 				game.displayinfo.dragged=item;
-				app.set({'game':game});
+				app.send({'game':game});
 			},
 			drop(evt){
 				let el = document.getElementById('playedcards').getBoundingClientRect();
@@ -1281,7 +1281,7 @@
 					let game = app.get().game;
 					if(game.displayinfo.dragged!==null) app.choosewrapper(game.displayinfo.dragged);
 					game.displayinfo.dragged!=null;
-					app.set({'game':game});
+					app.send({'game':game});
 
 				}
 			},

@@ -131,9 +131,9 @@ button {
 	position: absolute; 
 	right:30%;
 	top: 50%;
-	height: 25%;
-	width:40%;
-	font-size: 300%;
+	height: 15%;
+	width:20%;
+	font-size: 150%;
 }
 .ownedcards{
 	display: flex;
@@ -151,7 +151,7 @@ button {
 }
 .hand > img{
 	position:relative;
-	height:175px;
+	width:auto;
 	
 }
 .deck{

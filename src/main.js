@@ -2137,7 +2137,8 @@ game.nonce=nonce;
 const app = new App({
 	target: document.body,
 	data: {
-		game: game,
+        game: game,
+        phases: game.gamephases,
 	}
 });
 export default app;

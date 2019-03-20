@@ -815,49 +815,7 @@
 				}
 				return [selected_item, source];
 			},
-			performcardaction(choices, callback=null){
-				let game = app.get().game;
-				let card=choices[0];
-				if (card.name == 'Skip'){
-					callback(card);
-					return;
-				}
-				let elem;
-				let temphand = [];
-				let removed = false;
-				let iterations = game.acting_player.hand.length;
-				for (let i = 0; i < iterations; i++){
-					elem = game.acting_player.hand.pop();
-					if ((card.identifier == elem.identifier) && !removed) { 
-						game.acting_player.limbo.push({'final_destination_label':'discard', ...elem});
-						game.acting_player.activeaction = elem; 
-						removed=true;
-					}
-					else { temphand.push(elem) }; 
-				}
-				
-				for (let i in temphand){
-					game.acting_player.hand.push(temphand[i]);
-				}
-				app.send({'game':game});
-				app.play(game.acting_player.hand, game.acting_player.limbo, 'discard', game.acting_player.activeaction.identifier);
-				app.send({'game':game});
-				game.acting_player.activeaction.action(callback);
-			},
-			selectcentercardrole(choices, callback=null){
-				let game = app.get().game;
-				let card = choices[0]; 
-				game.acting_player.activerole.set(card);
-				game = game = app.get().game;
-				if (game.stacks.pilecount[card.type] >= 1){
-					game.acting_player.boostingicons[card.type]++;
-					game.acting_player.limbo.push(Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard'},game.stacks.rolecards[game.stacks[card.type]]));
-					game.stacks.pilecount[card.type]--;
-				}
-				let [,,...arr] = arguments;
-				app.send({'game':game});
-				callback(card,...arr);
-			},
+			
 			boostrolewithcards(choices, callback=null){
 				let game = app.get().game;
 				let cards=choices;
@@ -963,7 +921,7 @@
 					nextphase = app.endgame;
 				}
 				app.send({'game':game});
-				app.get().game.nextphase();
+				nextphase();
 			},
 			generategamesequence(){
 				let game=app.get().game;
@@ -978,7 +936,7 @@
 				_gamesequence = app.gshelper([...game.gamephases[5].discard],_gamesequence);
 				_gamesequence = app.gshelper([...game.gamephases[6].cleanup],_gamesequence);
 				game.gamesequence = _gamesequence;
-				app.send({'game':game});
+				app.set({'game':game,'phases':_gamesequence});
 			},
 			gshelper(source_array, destination_array){
 				for (let i in source_array){
@@ -1066,6 +1024,7 @@
 				game.ws.onmessage = evt => {
 					// on receiving a message, add it to the list of messages
 					let game = JSON.parse(evt.data);
+					game.gamesequence=app.get().phases;
 					app.set({'game':{...app.get().game,...game}});
 					
 				}

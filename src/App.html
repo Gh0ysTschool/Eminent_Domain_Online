@@ -7,7 +7,7 @@
 
 {#if game.currentphase==-3}
 {:elseif game.currentphase==-2}
-	<div id='screen' class="bordered" on:load="openFullscreen(document.getElementById('screen'))" style="position:absolute; width: 95%; height: 95%">
+	<div id='screen' class="bordered" on:load="openFullscreen()" style="position:absolute; width: 95%; height: 95%">
 		<div class="bordered" style="position:absolute; width:100%; height: 10%">
 			<div class="bordered" style="position:absolute; width:100%; height:50%">
 					<div class="bordered" style="position:absolute; width:33.33%; height:100%"></div>
@@ -1288,7 +1288,8 @@
 			move(evt){
 				evt.preventDefault();
 			},
-			openFullscreen(elem) {
+			openFullscreen() {
+				let elem = document.getElementById('screen');
 				if (elem.requestFullscreen) {
 				elem.requestFullscreen();
 				} else if (elem.mozRequestFullScreen) { /* Firefox */

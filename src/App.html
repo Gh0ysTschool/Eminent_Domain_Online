@@ -463,101 +463,11 @@
                         app.send({'game':game});
                         app.present_as_choice(game.acting_player.unsettled_planets);
 					};return this;},
-					improved_survey:  function(){this.research(3);this.imgurl+="improvedsurvey";this.action=function(callback){
-						let game = app.get().game;
-						app.draw(game.acting_player, 3);
-						app.send({'game':game});
-						callback();
-					};return this;},
-					improved_research:function(){this.research(3);this.imgurl+="improvedresearch";this.action=function(callback){
-						let game = app.get().game;
-						app.draw(game.acting_player);
-						let callbackwrapper =()=>{
-							let game = app.get().game;
-							research(game.choices, game.acting_player, 3);
-							app.send({'game':game});
-							callback();
-						};
-						document.addEventListener('choicemade',callbackwrapper);
-                        game.displayinfo.selectionzone='hand';
-                        game.displayinfo.allowformultipleselections = true;
-                        game.displayinfo.showoptiontoskip = true;
-                        app.send({'game':game});
-                        app.present_as_choice(game.acting_player.hand);
-						callback();
-					};return this;},
-					improved_warfare: function(){this.research(3);this.imgurl+="improvedwarfare";this.action=function(callback){
-						let game = app.get().game;
-						let callbackwrapper = ()=>{
-							document.removeEventListener('choicemade', callbackwrapper);
-							let game = app.get().game;
-							if(game.choices[0].name=="Skip"){
-								callback();
-							}
-							else if(game.choices[0].name=='Collect 2 Starfighters'){
-								let game=app.get().game;
-								app.warfare(game.acting_player);
-								app.warfare(game.acting_player);
-								game = app.get().game;
-								app.send({'game':game});
-								callback();
-							}
-							else if(game.choices[0].name=='Conquer a Planet'){
-								let callbackwrapper = ()=>{
-									document.removeEventListener('choicemade', callbackwrapper);
-									let game = app.get().game;
-									app.conquer(game.choices[0], game.acting_player);
-									app.send({'game':game});
-									callback();
-								};
-								document.addEventListener('choicemade', callbackwrapper);
-								game = app.get().game;
-								game.displayinfo.center_or_planets=false;
-								game.displayinfo.selectionzone='unsettled_planets';
-								game.displayinfo.allowformultipleselections=false;
-								game.displayinfo.showoptiontoskip=true;
-								app.send({'game':game});
-								app.present_as_choice(game.acting_player.unsettled_planets);
-							}
-						};
-						document.addEventListener('choicemade', callbackwrapper);
-						game = app.get().game;
-						game.displayinfo.selectionzone='options';
-						game.displayinfo.allowformultipleselections=false;
-						game.displayinfo.showoptiontoskip=false;
-						app.send({'game':game});
-						app.present_as_choice([{name:'Conquer a Planet'}, {name:'Collect 2 Starfighters'}]);
-
-					};return this;},
-					improved_production:function(){this.research(3);this.imgurl+="improvedproduction";this.action=function(callback){
-						let game = app.get().game;
-						let callbackwrapper = ()=>{
-							document.removeEventListener('choicemade', callbackwrapper);
-							if (choices[0].name!="Skip"){
-								app.produce(game.choices,game.acting_player.boostingicons.produce,2);
-							}
-							callback();
-						}
-						document.addEventListener('choicemade', callbackwrapper);
-						
-						game.displayinfo.center_or_planets=false;
-						game.displayinfo.selectionzone='settled_&_conquered_planets';
-						game.displayinfo.allowformultipleselections=true;
-						game.displayinfo.showoptiontoskip=true;
-						app.send({'game':game});
-						app.present_as_choice([...game.acting_player.settled_planets, ...game.acting_player.conquered_planets]);
-					};return this;},
-					improved_trade:   function(){this.research(3);this.imgurl+="improvedtrade";this.action=function(callback){
-						let game = app.get().game;
-						game.acting_player.influence.push(game.influence.pop());
-						app.send({'game':game});
-						callback();
-					};return this;},
-					mobilization:function(){this.research(3);this.action=function(callback){
-						let game = app.get().game;
-						app.send({'game':game});
-						callback();
-					};return this;},
+					improved_survey:  function(){this.research(3);this.imgurl+="improvedsurvey";return this;},
+					improved_research:function(){this.research(3);this.imgurl+="improvedresearch";return this;},
+					improved_warfare: function(){this.research(3);this.imgurl+="improvedwarfare";return this;},
+					improved_production:function(){this.research(3);this.imgurl+="improvedproduction";return this;},
+					improved_trade:   function(){this.research(3);this.imgurl+="improvedtrade";return this;},
 					survey_team:function(){return this;},
 					war_path:function(){return this;},
 					terraforming:function(){return this;},
@@ -616,16 +526,7 @@
 					'discard' : [],
 					'handsize':5,
 					'activeaction' : null,
-					'activerole' : {
-						'role':{},
-						'set':(role)=>{ 
-							let game = app.get().game;
-							game.acting_player.activerole.role=role;
-							app.send({'game':game}) ;
-						},
-						'performfollowerrole':app.performfollowerrole,
-						'performleaderrole':app.performleaderrole,
-					},
+					'activerole' : '',
 					'handsize' : 5,
 					'boostingicons' : {'survey':0,'warfare':0,'colonize':0,'produce':0,'trade':0,'research':0},
 					'unsettled_planets' : [],
@@ -1299,7 +1200,7 @@
 				} else if (elem.msRequestFullscreen) { /* IE/Edge */
 				elem.msRequestFullscreen();
 				}
-			}
+			},
 		}
 	}
 </script>

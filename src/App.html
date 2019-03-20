@@ -212,6 +212,7 @@
 					choice.selected=true;
 					if (choice.type!=='planet' || choice.type!=='fertile' || choice.type!=='metallic' || choice.type!=='advanced'){
 						choice.final_destination_label='discard';
+						console.log(choice);
 					 	game.acting_player.limbo.push(choice);
 						game.acting_player.hand = game.acting_player.hand.filter(
 							(el)=>{ return el.identifier != choice.identifier}
@@ -381,7 +382,7 @@
 			},
 			send(state){
 				app.set(state);
-				if (app.get().game.ws!==undefined){
+				if (app.get().ws!==undefined){
 					app.sendstate();
 				}
 			},
@@ -824,6 +825,7 @@
 					for (let i = 0; i < iterations; i++){
 						game.acting_player.boostingicons[cards[i].type]++;
 						app.send({'game':game});
+						console.log(cards[i]);
 						app.play(game.acting_player.hand,game.acting_player.limbo,'discard',cards[i].identifier);
 					}
 				}
@@ -880,6 +882,7 @@
 				game.acting_player.activerole.set(card);
 				if (game.stacks.pilecount[card.type] >= 1){
 					game.acting_player.boostingicons[card.type]++;
+					console.log(card);
 					game.acting_player.limbo.push(Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard'},game.stacks.rolecards[game.stacks[card.type]]));
 					
 					game.stacks.pilecount[card.type]--;
@@ -994,7 +997,7 @@
 				app.generate_research_deck();
 				app.generategamesequence();
 				//app.makews('ws://localhost:3030');
-				app.makews('ws://192.168.1.6:3030');
+				app.makews('ws://192.168.43.54:3030');
 				app.generate_game_id();
 				app.phasefinishfunction();
 			},
@@ -1019,31 +1022,32 @@
 			},
 			makews(url){
 				let game = app.get().game;
-				game.ws = new WebSocket(url);
+				let ws = new WebSocket(url);
+				let i = 0;
 
-				game.ws.onmessage = evt => {
+				ws.onmessage = evt => {
 					// on receiving a message, add it to the list of messages
 					let game = JSON.parse(evt.data);
 					game.gamesequence=app.get().phases;
-					app.set({'game':{...app.get().game,...game}});
+					app.set({'game':game});
+					console.log(i++);
 					
 				}
-				game.ws.onopen = evt => {
+				ws.onopen = evt => {
 					console.log('connected');
 				}
-				game.ws.onclose = () => {
+				ws.onclose = () => {
 					console.log('disconnected');
 					// automatically try to reconnect on connection loss
-					let game = app.get().game;
-					game.ws = new WebSocket(url);
-					app.set({'game':game});
+					ws = new WebSocket(url);
+					app.set({'ws':ws});
 				}
 				
-				app.set({'game':game});
+				app.set({'game':game,'ws':ws});
 				
 			},
 			sendstate(){
-				let ws = app.get().game.ws;
+				let ws = app.get().ws
 				if (ws.readyState==1){
 					ws.send(JSON.stringify({'header':'set',...app.get().game}));
 				}

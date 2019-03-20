@@ -1320,7 +1320,7 @@ let game = {
                                     }
                                 }
                                 if (app.get().game.acting_player.activeaction='specialization'){
-                                    for ( let i in Array.from( prd[app.get.game.acting_player.specialization] ) ) {
+                                    for ( let i in Array.from( prd[app.get().game.acting_player.specialization] ) ) {
                                         app.get().game.acting_player.influence.push(app.get().game.influence.pop());
                                     }
                                 }

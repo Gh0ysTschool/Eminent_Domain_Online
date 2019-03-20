@@ -407,62 +407,7 @@
 					permanent:function(){this.is_permanent = true; return this;},
 					doubleside:function(){this.is_doublesided = true; return this;},
 					icons:function(icons){this.icons = Object.assign(this.icons, icons); return this;},
-					improved_colonize:function(){this.research(3);this.imgurl+="improvedcolonize";this.action=function(callback){
-						let callbackwrapper=()=>{
-							document.removeEventListener('choicemade', callbackwrapper);
-								let game = app.get().game;
-							if(game.choices[0].name!="Skip"){
-								app.settle_colonies(game.choices[0], game.acting_player);
-								app.send({'game':game});
-							}
-							game = app.get().game;
-							let callbackwrapper = ()=>{
-								document.removeEventListener('choicemade', callbackwrapper);
-								let game = app.get().game;
-								if(game.choices[0].name=='colonize'){
-									let callbackwrapper = ()=>{
-										document.removeEventListener('choicemade', callbackwrapper);
-										let game=app.get().game;
-										app.colonize(game.choices[0], game.acting_player.limbo ,game.acting_player.activeaction, false);
-										app.send({'game':game});
-										callback();
-									};
-									document.addEventListener('choicemade', callbackwrapper);
-								}
-								else if(game.choices[0].name=='settle_colonies'){
-									let callbackwrapper = ()=>{
-										document.removeEventListener('choicemade', callbackwrapper);
-										let game = app.get().game;
-										app.settle_colonies(game.choices[0], game.acting_player);
-										app.send({'game':game});
-										callback();
-									};
-									document.addEventListener('choicemade', callbackwrapper);
-								}
-								game = app.get().game;
-								game.displayinfo.center_or_planets=false;
-								game.displayinfo.selectionzone='unsettled_planets';
-								game.displayinfo.allowformultipleselections = false;
-								game.displayinfo.showoptiontoskip = true;
-								app.send({'game':game});
-								app.present_as_choice(game.acting_player.unsettled_planets);
-							};
-							document.addEventListener('choicemade', callbackwrapper);
-							game = app.get().game;
-							game.displayinfo.selectionzone='options';
-							game.displayinfo.allowformultipleselections = false;
-							game.displayinfo.showoptiontoskip = false;
-							app.send({'game':game});
-							app.present_as_choice([{name:'colonize'}, {name:'settle_colonies'}]);
-						}
-                        let game = app.get().game;
-                        game.displayinfo.center_or_planets=false;
-                        game.displayinfo.selectionzone='unsettled_planets';
-                        game.displayinfo.allowformultipleselections = false;
-                        game.displayinfo.showoptiontoskip = false;
-                        app.send({'game':game});
-                        app.present_as_choice(game.acting_player.unsettled_planets);
-					};return this;},
+					improved_colonize:function(){this.research(3);this.imgurl+="improvedcolonize";return this;},
 					improved_survey:  function(){this.research(3);this.imgurl+="improvedsurvey";return this;},
 					improved_research:function(){this.research(3);this.imgurl+="improvedresearch";return this;},
 					improved_warfare: function(){this.research(3);this.imgurl+="improvedwarfare";return this;},

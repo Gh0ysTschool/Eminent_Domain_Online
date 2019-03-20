@@ -47,6 +47,7 @@ let game = {
                                 game.leadingplayer = game.players[game.leading_player_index];
                                 game.acting_player = game.players[game.leading_player_index];
                                 app.send({'game':game});
+                                app.openFullscreen();
                                 document.dispatchEvent(new Event('pass_turn'));
                                 
                             }

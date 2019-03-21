@@ -21,7 +21,7 @@ let game = {
     'messagetoplayer':[],
     'options':[],
     'planet_deck':[],
-    'currentphase':-1,
+    'currentphase':-3,
     'leading_player_index':0,
     'acting_player_index':0,
     'number_of_players':2,
@@ -92,9 +92,9 @@ let game = {
                                 } = app.get();
 
                                 player.activeaction=card.type;
-                                // limbo = limbo.filter(
-                                //     (el)=>{return card.identifier != el.identifier;}
-                                // );
+                                limbo = limbo.filter(
+                                    (el)=>{return card.identifier != el.identifier;}
+                                );
                                 limbo.push(
                                     {'final_destination_label':'discard', 
                                     ...hand.filter(
@@ -105,7 +105,7 @@ let game = {
                                  hand = hand.filter(
                                     (el)=>{return card.identifier != el.identifier}
                                 );
-                                // player.limbo = limbo;
+                                player.limbo = limbo;
                                 player.hand=hand;
                                 app.send({'game':game});
                                 app.phasefinishfunction();
@@ -1117,16 +1117,16 @@ let game = {
                         } else {
                             for (let i in cards){
                                 player.boostingicons[cards[i].type]++;
-                                limbo.push(
-                                    {'final_destination_label':'discard', 
-                                    ...hand.filter(
-                                        (el)=>{return cards[i].identifier == el.identifier;}
-                                    )[0]
-                                    }
-                                );
-                                hand = hand.filter(
-                                    (el)=>{return cards[i].identifier != el.identifier}
-                                );
+                            //     limbo.push(
+                            //         {'final_destination_label':'discard', 
+                            //         ...hand.filter(
+                            //             (el)=>{return cards[i].identifier == el.identifier;}
+                            //         )[0]
+                            //         }
+                            //     );
+                            //     hand = hand.filter(
+                            //         (el)=>{return cards[i].identifier != el.identifier}
+                            //     );
                             }
                             player.hand=hand;
                             //TODO: tally up icons on planets
@@ -1390,7 +1390,7 @@ let game = {
                         } else {    
                             let game = app.get().game;
                             //survey_role purchase, offer_to_boost explore_planet, present_as_choice, choose, catalog_planet, discard
-                            for (let i = 0; i < game.acting_player.boostingicons.survey; i++){
+                            for (let i = 0; i < app.get().game.acting_player.boostingicons.survey; i++){
                                 app.explore_planet(game.acting_player); 
                             }
                             app.send({'game':game});
@@ -1443,7 +1443,7 @@ let game = {
                         if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Collect Starfighters'){
                             app.phasefinishfunction();
                         } else {    
-                            for (let i = 0; i < game.acting_player.boostingicons.warfare; i++){
+                            for (let i = 0; i < app.get().game.acting_player.boostingicons.warfare; i++){
                                 app.warfare(game.acting_player);
                             }
                             app.phasefinishfunction();
@@ -1598,16 +1598,16 @@ let game = {
                             } else {
                                 for (let i in cards){
                                     player.boostingicons[cards[i].type]++;
-                                    limbo.push(
-                                        {'final_destination_label':'discard', 
-                                        ...hand.filter(
-                                            (el)=>{return cards[i].identifier == el.identifier;}
-                                        )[0]
-                                        }
-                                    );
-                                    hand = hand.filter(
-                                        (el)=>{return cards[i].identifier != el.identifier}
-                                    );
+                                    // limbo.push(
+                                    //     {'final_destination_label':'discard', 
+                                    //     ...hand.filter(
+                                    //         (el)=>{return cards[i].identifier == el.identifier;}
+                                    //     )[0]
+                                    //     }
+                                    // );
+                                    // hand = hand.filter(
+                                    //     (el)=>{return cards[i].identifier != el.identifier}
+                                    // );
                                 }
                                 player.hand=hand;
                                 //TODO: tally up icons on planets
@@ -1897,7 +1897,7 @@ let game = {
                         if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Collect Starfighters'){
                             app.phasefinishfunction();
                         } else {    
-                            for (let i = 0; i < game.acting_player.boostingicons.warfare; i++){
+                            for (let i = 0; i < app.get().game.acting_player.boostingicons.warfare; i++){
                                 app.warfare(game.acting_player);
                             }
                             app.phasefinishfunction();
@@ -2133,10 +2133,21 @@ let game = {
     },
     
 };
+//let url = 'ws://localhost:3030';
+let url = 'ws://192.168.1.6:3030';
+let lobby =
+{
+    url:url,
+    sets: ['Base Game'],
+    number_of_players:[ 2, 3, 4],
+    existinggames:[],
+}
+ 
 game.nonce=nonce;
 const app = new App({
 	target: document.body,
 	data: {
+        lobby: lobby,
         game: game,
         phases: game.gamephases,
 	}

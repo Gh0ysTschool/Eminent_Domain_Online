@@ -6,61 +6,25 @@
 <!-- -->
 
 {#if game.currentphase==-3}
+
+<div class="playercountselector">
+	<p on:click="phaseincrement()" on:tap="phaseincrement()">Start a New Game</p>
+	<p on:click="fetchexistinggames()" on:tap="fetchexistinggames()">Join an Existing Game</p>
+</div>
 {:elseif game.currentphase==-2}
-	<div  class="bordered"  style="position:absolute; width: 95%; height: 95%">
-		<div class="bordered" style="position:absolute; width:100%; height: 10%">
-			<div class="bordered" style="position:absolute; width:100%; height:50%">
-					<div class="bordered" style="position:absolute; width:33.33%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:33.33%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:33.33%; height:100%"></div>
-			</div>
-			<div class="bordered" style="position:absolute; width:100%; height:50%">
-					<div class="bordered" style="position:absolute; width:33.33%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:33.33%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:33.33%; height:100%"></div>
-			</div>
-		</div>
-		<div class="bordered" style="position:absolute; margin-top:10%; width: 100%; height: 40%">
-			<div class="bordered" style="position:absolute; width: 18%; height: 5%"></div>
-			<div class="bordered" style="position:absolute; width: 18%; height:5%"></div>
-			<div class="bordered" style="position:absolute; width:100%; height: 95%">
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-			</div>
-		</div>
-		<div class="bordered" style="position:absolute;  margin-top:50%; width:100%; height:20%">
-			<div class="bordered" style="position:absolute; width: 10%; height: 80%"></div>
-			<div class="bordered" style="position:absolute; width: 80%; height: 100%">
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-			</div>
-			<div class="bordered" style="position:absolute; width: 10%; height: 80%"></div>
-		</div>
-		<div class="bordered" style="position:absolute;  margin-top:70%; width: 100%; height: 4%"></div>
-		<div class="bordered" style="position:absolute;  margin-top:74%; width: 100%; height: 26%">
-			<div class="bordered" style="position:absolute; width: 8%; height: 80%"></div>
-			<div class="bordered" style="position:absolute; width: 94%; height: 100%">
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-					<div class="bordered" style="position:absolute; width:18%; height:100%"></div>
-			</div>
-			<div class="bordered" style="position:absolute; width: 8%; height: 80%"></div>
-		</div>
-	</div>
+<div class="playercountselector">
+	<p> Choose your Game's number of Players</p>
+	<p on:click="newgame(2)" on:tap="newgame(2)">2</p>
+	<p on:click="newgame(3)" on:tap="newgame(3)">3</p>
+	<p on:click="newgame(4)" on:tap="newgame(4)">4</p>
+</div>
 {:elseif game.currentphase==-1}
 	<div class="playercountselector">
-        <p on:click="initgame(2)" on:tap="initgame(2)">2</p>
-        <p on:click="initgame(2)" on:tap="initgame(3)">3</p>
-        <p on:click="initgame(2)" on:tap="initgame(4)">4</p>
-    </div>
+		<p>Choose a Game to Join</p>
+		{#each lobby.existinggames as g}
+        	<p on:click="enterexistinggame(g)" on:tap="enterexistinggame(g.game_id)">{g.game_id}</p>
+		{/each}
+	</div>
 {:elseif game.passtoplayer}
     <div class='passtoplayer' on:click="togglepasstoplayer()" on:tap="togglepasstoplayer()">
     pass to next player
@@ -210,9 +174,8 @@
 				if ( !game[game.displayinfo.choicelabel].includes(choice) ) {
 					game[game.displayinfo.choicelabel].push(choice);
 					choice.selected=true;
-					if (choice.type!=='planet' || choice.type!=='fertile' || choice.type!=='metallic' || choice.type!=='advanced'){
+					if (choice.type!=='planet' && choice.type!=='fertile' && choice.type!=='metallic' && choice.type!=='advanced'){
 						choice.final_destination_label='discard';
-						console.log(choice);
 					 	game.acting_player.limbo.push(choice);
 						game.acting_player.hand = game.acting_player.hand.filter(
 							(el)=>{ return el.identifier != choice.identifier}
@@ -223,8 +186,8 @@
 					//let i = game[game.displayinfo.choicelabel].indexOf(choice);
 					choice.selected=false;
 					//game[game.displayinfo.choicelabel].splice(i,1);
-					if (choice.type!=='planet'){
-					 	game.acting_player.hand.push(choice);
+					if (choice.type!=='planet' && choice.type!=='fertile' && choice.type!=='metallic' && choice.type!=='advanced'){
+						game.acting_player.hand.push(choice);
 						game.acting_player.limbo = game.acting_player.limbo.filter(
 							(el)=>{ return el.identifier != choice.identifier}
 						)
@@ -464,6 +427,7 @@
 				let _player = {
 					'id':_id,
 					'specialization':'',
+					'available':true,
 					'rounds':0,
 					'limbo': [],
 					'deck' : [],
@@ -728,7 +692,7 @@
 			//research hand->exile
 			research(cards, player, limit=2){
 				for (let i = 0; (i < cards.length && i < limit); i++){
-					app.remove_from_game(player.hand, cards[i].identifier);
+					app.remove_from_game(player.limbo, cards[i].identifier);
 				}
 			},
 			//boost logic->player_icons
@@ -825,7 +789,6 @@
 					for (let i = 0; i < iterations; i++){
 						game.acting_player.boostingicons[cards[i].type]++;
 						app.send({'game':game});
-						console.log(cards[i]);
 						app.play(game.acting_player.hand,game.acting_player.limbo,'discard',cards[i].identifier);
 					}
 				}
@@ -882,7 +845,6 @@
 				game.acting_player.activerole.set(card);
 				if (game.stacks.pilecount[card.type] >= 1){
 					game.acting_player.boostingicons[card.type]++;
-					console.log(card);
 					game.acting_player.limbo.push(Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard'},game.stacks.rolecards[game.stacks[card.type]]));
 					
 					game.stacks.pilecount[card.type]--;
@@ -989,6 +951,82 @@
 				app.send({'game':game});
 				return deck;
 			},
+			phaseincrement(){
+				let game = app.get().game;
+				game.currentphase++;
+				app.set({'game':game});
+			},
+			newgame(number_of_players){
+				let sets = app.get().lobby.sets;
+				//returns {game_id, game_name, number_of_players, slots}
+				let ws = new WebSocket(app.get().lobby.url);
+				app.initgame(number_of_players);
+				ws.onmessage = (evt) => {
+					// on receiving a message, add it to the list of messages
+					let game = app.get().game;
+					let lobby = app.get().lobby;
+					game.game_id = JSON.parse(evt.data);
+					lobby.existinggames.push(game);
+					app.set({'game':game,'lobby':lobby});
+					ws.close();
+					app.enterexistinggame(app.get().game);
+				}
+				ws.onopen = (evt) => {
+					if (ws.readyState==1){
+						ws.send(JSON.stringify({'header':'newgame',game:app.get().game,sets:sets,number_of_players:number_of_players}));
+					}
+				}
+			},
+			fetchexistinggames(){
+				//returns list of [{game_id, game_name, number_of_players, slots},...]
+				let ws = new WebSocket(app.get().lobby.url);
+				ws.onmessage = (evt) => {
+					let game = app.get().game;
+					game.currentphase = -1;
+					app.set({'game':game});
+					let lobby = app.get().lobby
+					lobby.existinggames = JSON.parse(evt.data).map((el)=>{return el.game});
+					app.set({'lobby':lobby});
+					ws.close();
+				}
+				ws.onopen = (evt) => {
+					if (ws.readyState==1){
+						ws.send(JSON.stringify({'header':'fetchexisting'}));
+					}
+				}
+			},
+			enterexistinggame(g){
+				let game_id = g.game_id;
+				let slot = 0, player_name = 0;
+				for (let i in g.players){
+					if (g.players[i].available){
+						slot = i;
+						player_name = i;
+						break;
+					}
+				}
+				app.initgame(g.number_of_players);
+				let ws = new WebSocket(app.get().lobby.url);
+				ws.onmessage = evt => {
+					// on receiving a message, add it to the list of messages
+					let game = JSON.parse(evt.data);
+					game.gamesequence=app.get().phases;
+					if (game.currentphase !=0) {
+						game.currentphase=-1;	
+					}
+					app.set({'game':game});
+					ws.close();
+					if (game.currentphase != 0 ){
+						app.phasefinishfunction();
+					}
+					
+				}
+				ws.onopen = (evt) => {
+					if (ws.readyState==1){
+						ws.send(JSON.stringify({'header':'enterexisting',game_id:game_id,player_name,slot:slot}));
+					}
+				}
+			},
 			initgame(number_of_players){
 				app.generateplanetdeck();
 				for (let i = 0; i < number_of_players; i++){
@@ -996,10 +1034,11 @@
 				}
 				app.generate_research_deck();
 				app.generategamesequence();
+				app.makews('ws://192.168.1.6:3030');
+				//'ws://192.168.43.54:3030';
 				//app.makews('ws://localhost:3030');
-				app.makews('ws://192.168.43.54:3030');
 				app.generate_game_id();
-				app.phasefinishfunction();
+				//app.phasefinishfunction();
 			},
 			toggle_center_or_planets(){
 				let game=app.get().game;
@@ -1020,27 +1059,23 @@
 					) 
 				: "bordered";
 			},
-			makews(url){
+			makews(){
 				let game = app.get().game;
-				let ws = new WebSocket(url);
+				let ws = new WebSocket(app.get().lobby.url);
 				let i = 0;
 
 				ws.onmessage = evt => {
 					// on receiving a message, add it to the list of messages
 					let game = JSON.parse(evt.data);
-					game.gamesequence=app.get().phases;
-					app.set({'game':game});
-					console.log(i++);
+					if (game.game_id==app.get().game.game_id){
+						game.gamesequence=app.get().phases;
+						app.set({'game':game});
+					}
 					
 				}
 				ws.onopen = evt => {
-					console.log('connected');
 				}
 				ws.onclose = () => {
-					console.log('disconnected');
-					// automatically try to reconnect on connection loss
-					ws = new WebSocket(url);
-					app.set({'ws':ws});
 				}
 				
 				app.set({'game':game,'ws':ws});

@@ -11,17 +11,39 @@ endgame if x stacks are empty and the round has finished
 change leader role/follow role and action functions when a stack changes
 add planet, production zone, handsize, and icons images
 
+{
+    lobby:
+    {
+        sets: ['Base Game'],
+        number_of_players:[ 2, 3, 4],
+        newgame:(number_of_players, sets, game) => {},
+        getexistinggames:()=>{
+            returns list of [{game_id, game_name, number_of_players, slots},...]
+        },
+        enterexistinggame:(game_id, number_of_players, slot, player_name)=>{
+            returns gamestate, player_id
+        },
+    }
+}
 select new game or existing game
     new
+        which sets
+        {Base Game,}
         how many players
-        name your player
+        buttons {2,3,4,5(if expansion set is present)}
+        send to server -> newgame, get a game id back
     existing
-        type in game key
-        nme your player
-    get assigned a player id
+        choose which game
+            {button for each game with game name, game id, number of players, occupied player slots}
+    name / number your player
+        select from empty player slots
+        enter name into field
+        send to server -> occupy player slot with game id, player name, slot number, get a gamestate back
     display your playingfield while its your turn
-    when active_player is different id  
-        display other players playerd cards and limbo cards
+        -> hand displays game.players[player_id] instead of acting player
+        -> choose wrapper only allows selection if active_player_index == player_id
+        -> playingfield has player name appended to the top
+        -> remove passtoplayer toggles
         
 
 

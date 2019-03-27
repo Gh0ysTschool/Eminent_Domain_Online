@@ -21,7 +21,7 @@ let game = {
     'messagetoplayer':[],
     'options':[],
     'planet_deck':[],
-    'currentphase':-3,
+    'currentphase':-4,
     'leading_player_index':0,
     'acting_player_index':0,
     'number_of_players':2,
@@ -39,17 +39,20 @@ let game = {
                                 let game = app.get().game;
                                 game.started = true;
                                 game.passt=false;
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 game = app.get().game;
                                 game.leading_player_index = (game.leading_player_index+1)%game.number_of_players;
                                 game.acting_player_index=game.leading_player_index;
                                 game.leadingplayer = game.players[game.leading_player_index];
                                 game.acting_player = game.players[game.leading_player_index];
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 app.openFullscreen();
-                                document.dispatchEvent(new Event('pass_turn'));
-                                
                             }
+                            let game = app.get().game;
+                            if (game.leadingplayer.rounds!==undefined){
+                                game.leadingplayer.rounds++;
+                            }
+                            app.set({'game':game});
                             app.phasefinishfunction();
                         }
                 }
@@ -97,9 +100,7 @@ let game = {
                                 );
                                 limbo.push(
                                     {'final_destination_label':'discard', 
-                                    ...hand.filter(
-                                            (el)=>{return card.identifier == el.identifier;}
-                                        )[0]
+                                    ...card
                                     }
                                 );
                                  hand = hand.filter(
@@ -107,8 +108,10 @@ let game = {
                                 );
                                 player.limbo = limbo;
                                 player.hand=hand;
-                                app.send({'game':game});
+                                game.acting_player = player;
+                                app.set({'game':game});
                                 app.phasefinishfunction();
+
                             }
                         }
                 },
@@ -596,7 +599,7 @@ let game = {
                             } else {   
                                 let game = app.get().game;
                                 game.acting_player.influence.push(game.influence.pop());
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 app.phasefinishfunction();
                             }
                         }
@@ -741,7 +744,7 @@ let game = {
                                 let {game:game, game:{acting_player:player,planet_deck:planet_deck}} = app.get();
                                 let planet = planet_deck.pop();
                                 player.unsettled_planets.push(planet);
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 app.phasefinishfunction();
                             }
                         }
@@ -889,7 +892,7 @@ let game = {
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
                                     game.stacks.pilecount[game.choices[0].type]--;
                                 }
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 app.phasefinishfunction();
                             }
                         }
@@ -921,7 +924,7 @@ let game = {
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
                                     game.stacks.pilecount[selected_center_card.type]--;
                                 }
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 app.phasefinishfunction();
                             }
                         }
@@ -1048,14 +1051,14 @@ let game = {
                         let {game:game,game:{choices:[card]}} = app.get();
                         if (game.stacks.pilecount[card.type] >= 1){
                             game.acting_player.boostingicons[card.type]++;
-                            let newcard = Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard'},game.stacks.rolecards[game.stacks[card.type]]);
+                            let newcard = Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard','selected':true},game.stacks.rolecards[game.stacks[card.type]]);
                             game.acting_player.limbo.push(newcard);
                             game.stacks.pilecount[card.type]--;
                         } else if (card.type!='colonize'){
                             game.acting_player.boostingicons[card.type]++;
                         }
                         game.acting_player.activerole = card.type;
-                        app.send({'game':game});
+                        app.set({'game':game});
                         app.phasefinishfunction();
                     }
                 },
@@ -1131,7 +1134,7 @@ let game = {
                             player.hand=hand;
                             //TODO: tally up icons on planets
                             //TODO: tally up icons on technologies
-                            app.send({'game':game});
+                            app.set({'game':game});
                             app.phasefinishfunction();
                         }
                     }
@@ -1270,10 +1273,10 @@ let game = {
                             if (app.get().game.acting_player.activerole != 'producetrade' || app.get().game.choices[0].name != 'produce'){
                                 app.phasefinishfunction();
                             } else {
-                                ///app.send( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
+                                ///app.set( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
                                 let game = app.get().game;
                                 game.acting_player.activerole='produce';
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 let prd = app.produce(game.subchoices,game.acting_player.boostingicons.produce);
                                 if (app.get().game.acting_player.activeaction='genetic_engineering'){
                                     for (let i in prd){
@@ -1310,7 +1313,7 @@ let game = {
                             } else {   
                                 let game = app.get().game;
                                 game.acting_player.activerole='trade';
-                                app.send({'game':game}); 
+                                app.set({'game':game}); 
                                 let prd = app.trade(game.subchoices,game.acting_player, game.acting_player.boostingicons.trade);
                                 if (app.get().game.acting_player.activeaction='diverse_markets'){
                                     for (let i in prd){
@@ -1393,7 +1396,7 @@ let game = {
                             for (let i = 0; i < app.get().game.acting_player.boostingicons.survey; i++){
                                 app.explore_planet(game.acting_player); 
                             }
-                            app.send({'game':game});
+                            app.set({'game':game});
                             app.offer(
                                 true /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                                 false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
@@ -1444,7 +1447,7 @@ let game = {
                             app.phasefinishfunction();
                         } else {    
                             for (let i = 0; i < app.get().game.acting_player.boostingicons.warfare; i++){
-                                app.warfare(game.acting_player);
+                                app.warfare(app.get().game.acting_player);
                             }
                             app.phasefinishfunction();
                         }
@@ -1483,16 +1486,16 @@ let game = {
                         let game = app.get().game;
                         game.displayinfo.selectionzone='';
                         game.passp=true;
-                        app.send({'game':game});
+                        app.set({'game':game});
                     }
                 },
                 {
                     'You passed Priority':
                     ()=>{
                         let game = app.get().game;
-                        app.togglepasstoplayer();
+                        //app.togglepasstoplayer();
                         game.passp=false;
-                        app.send({'game':game});
+                        app.set({'game':game});
                         app.phasefinishfunction();
                     }
                 },
@@ -1552,7 +1555,7 @@ let game = {
                     ()=>{ 
                         let game = app.get().game;
                         game.acting_player.activerole=game.choices[0].name;
-                        app.send({'game':game});
+                        app.set({'game':game});
                         if (app.get().game.acting_player.activerole!='dissent'){
                             app.phasefinishfunction();
                         } else {    
@@ -1612,7 +1615,7 @@ let game = {
                                 player.hand=hand;
                                 //TODO: tally up icons on planets
                                 //TODO: tally up icons on technologies
-                                app.send({'game':game});
+                                app.set({'game':game});
                                 app.phasefinishfunction();
                             }
                         }
@@ -1739,10 +1742,10 @@ let game = {
                         if (app.get().game.acting_player.activerole != 'produce'){
                             app.phasefinishfunction();
                         } else {
-                            ///app.send( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
+                            ///app.set( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
                             let game = app.get().game;
                             game.acting_player.activerole='produce';
-                            app.send({'game':game});
+                            app.set({'game':game});
                             app.produce(game.subchoices,game.acting_player.boostingicons.produce);
                             app.phasefinishfunction();
                         }
@@ -1772,7 +1775,7 @@ let game = {
                             } else {   
                                 let game = app.get().game;
                                 game.acting_player.activerole='trade';
-                                app.send({'game':game}); 
+                                app.set({'game':game}); 
                                 app.trade(game.subchoices,game.acting_player, game.acting_player.boostingicons.trade);
                                 app.phasefinishfunction();
                             }
@@ -1843,7 +1846,7 @@ let game = {
                             for (let i = 0; i < game.acting_player.boostingicons.survey-1; i++){
                                 app.explore_planet(game.acting_player); 
                             }
-                            app.send({'game':game});
+                            app.set({'game':game});
                             app.offer(
                                 true /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                                 false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
@@ -1876,7 +1879,7 @@ let game = {
                         ()=>{        
                             if (app.get().game.acting_player.activerole != 'warfare' ){
                                 app.phasefinishfunction();
-                            } else if ( game.acting_player.permanents.filter( (el)=>{return el.type=='bureaucracy'} ).length == 0){
+                            } else if ( app.get().game.acting_player.permanents.filter( (el)=>{return el.type=='bureaucracy'} ).length == 0){
                                 let game = app.get().game;
                                 game.choices=['Collect Starfighters'];
                                 app.phasefinishfunction();
@@ -1898,7 +1901,7 @@ let game = {
                             app.phasefinishfunction();
                         } else {    
                             for (let i = 0; i < app.get().game.acting_player.boostingicons.warfare; i++){
-                                app.warfare(game.acting_player);
+                                app.warfare(app.get().game.acting_player);
                             }
                             app.phasefinishfunction();
                         }
@@ -1937,7 +1940,7 @@ let game = {
                         let game = app.get().game;
                         game.displayinfo.selectionzone='';
                         game.passp=true;
-                        app.send({'game':game});
+                        app.set({'game':game});
                     }
                 },
                 {
@@ -1945,7 +1948,7 @@ let game = {
                     ()=>{
                         let game = app.get().game;
                         game.passp=false;
-                        app.send({'game':game});
+                        app.set({'game':game});
                         app.phasefinishfunction();
                     }
                 },
@@ -2024,7 +2027,7 @@ let game = {
                                 // obsolete after drag and dop additions game.acting_player.hand = game.acting_player.hand.filter((el)=>{return el.identifier != game.choices[i].identifier});
                                 game.acting_player.discard.push(game.choices[i]);
                             }
-                            app.send({'game':game});
+                            app.set({'game':game});
                             app.phasefinishfunction();
                         }
                     }
@@ -2039,6 +2042,7 @@ let game = {
                 {
                     'Drawing up to your Hand Size':
                     ()=>{ 
+                        console.log(app.get().game);
                         let game = app.get().game;
                         let handsize = game.acting_player.handsize;
                         for (let index in game.acting_player.settled_planets){
@@ -2051,11 +2055,15 @@ let game = {
                         if (l < handsize){
                             app.draw(game.acting_player, handsize-l );
                         }
-                        app.cleanup(game.acting_player.limbo, game.acting_player);
+                        app.cleanup();
                         for (let i in game.players){
                             game.players[i].boostingicons = {'survey':0,'warfare':0,'colonize':0,'produce':0,'trade':0,'research':0};
                         }
-                        app.send({'game':game});
+                        if (app.get().game.started && app.checkforendgame() && (game.players.reduce((t,p)=>{return t+p.rounds},0))%game.number_of_players == 0){
+                            app.totalinfluence();
+                            game.nextphase = app.endgame;
+                        }
+                        app.set({'game':game});
                         app.phasefinishfunction();
                     }
                 },
@@ -2066,16 +2074,16 @@ let game = {
                         game.displayinfo.selectionzone='';
                         game.passp=false;
                         game.passt=true;
-                        app.send({'game':game});
+                        app.set({'game':game});
                     }
                 },
                 {
                     'You passed the Turn':
                     ()=>{
                         let game = app.get().game;
-                        app.togglepasstoplayer();
+                        //app.togglepasstoplayer();
                         game.passt=false;
-                        app.send({'game':game});
+                        app.set({'game':game});
                         app.phasefinishfunction();
                     }
                 },
@@ -2083,10 +2091,13 @@ let game = {
         },
     ],
     'players':[],
+    'winner':false,
     'stacks':{
         'pilecount':{
-            'research':20,
-            'producetrade':16,
+            //'research':20,
+            //'producetrade':16,
+            'research':1,
+            'producetrade':1,
             'colonize':20,
             'warfare':16,
             'survey':20
@@ -2137,6 +2148,7 @@ let game = {
 let url = 'ws://192.168.1.6:3030';
 let lobby =
 {
+    screenname:'',
     url:url,
     sets: ['Base Game'],
     number_of_players:[ 2, 3, 4],

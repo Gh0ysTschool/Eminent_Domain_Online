@@ -2144,7 +2144,7 @@ let game = {
     },
     
 };
-//let url = 'ws://localhost:3030';
+//let url = 'ws://temperate-isle.herokuapp.com:3030';
 let url = 'ws://192.168.1.6:3030';
 let lobby =
 {

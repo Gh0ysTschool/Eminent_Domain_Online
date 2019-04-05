@@ -50,14 +50,81 @@ let game = {
                             }
                             let game = app.get().game;
                             if (game.leadingplayer.rounds!==undefined){
-                                game.leadingplayer.rounds++;
+                                game.players[game.leading_player_index].rounds++;
+                            }
+                            let planets = [...game.players[game.leading_player_index].settled_planets,...game.players[game.leading_player_index].conquered_planets];
+                            for (let p in planets){
+                                game.players[game.leading_player_index].icons.survey+= planets[p].icons.survey;
+                                game.players[game.leading_player_index].icons.warfare+= planets[p].icons.warfare;
+                                game.players[game.leading_player_index].icons.trade+= planets[p].icons.trade;
+                                game.players[game.leading_player_index].icons.produce+= planets[p].icons.produce;
+                                game.players[game.leading_player_index].icons.research+= planets[p].icons.research;
+                            }
+                            for (let p in game.players[game.leading_player_index].permanents){
+                                game.players[game.leading_player_index].icons.survey+= permanents[p].icons.survey;
+                                game.players[game.leading_player_index].icons.warfare+= permanents[p].icons.warfare;
+                                game.players[game.leading_player_index].icons.trade+= permanents[p].icons.trade;
+                                game.players[game.leading_player_index].icons.produce+= permanents[p].icons.produce;
+                                game.players[game.leading_player_index].icons.research+= permanents[p].icons.research;
                             }
                             app.set({'game':game});
+                            app.phasefinishfunction(true);
+                        }
+                },
+                {
+                    'Productivity':()=>{
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='productivity'} ).length != 0){
+                            let game = app.get().game;
+                            game.players[app.get().game.acting_player_index].actionrolesequence = 'aar';
+                            app.set({'game':game});
+                        }
+                        app.phasefinishfunction();
+                    }
+                },
+                {
+                    'Choose an Order to Perform Your Action and Role Phases':()=>{
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='logistics'} ).length != 0){
+                            let options = [{name:'Action Phase then Role Phase'}, {name:'Role Phase then Action Phase'}];
+                            if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='productivity'} ).length != 0){
+                                //add aar,ara,and raa as options
+                                options.push({name:'Action Phase then another Action Phase then Role Phase'});
+                                options.push({name:'Action Phase then Role Phase then another Action Phase'});
+                                options.push({name:'Role Phase then Action Phase then another Action Phase'});
+                            }
+                            //offer ar or ra
+                            app.offer(
+                                false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                                false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                                ['options', options] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                'choices' /* label for where the choice is stored | set with game[label]=*/,
+                                app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
+                            );
+                        } else {
                             app.phasefinishfunction();
                         }
+                    }
+                },
+                {
+                    'Logistics':()=>{
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='logistics'} ).length != 0){
+                            let game = app.get().game;
+                            if (app.get().game.choices[0].name == 'Action Phase then Role Phase'){game.players[app.get().game.acting_player_index].actionrolesequence='ar';}
+                            else if (app.get().game.choices[0].name == 'Role Phase then Action Phase'){game.players[app.get().game.acting_player_index].actionrolesequence='ra';}
+                            else if (app.get().game.choices[0].name == 'Action Phase then another Action Phase then Role Phase'){game.players[app.get().game.acting_player_index].actionrolesequence='aar';}
+                            else if (app.get().game.choices[0].name == 'Action Phase then Role Phase then another Action Phase'){game.players[app.get().game.acting_player_index].actionrolesequence='ara';}
+                            else if (app.get().game.choices[0].name == 'Role Phase then Action Phase then another Action Phase'){game.players[app.get().game.acting_player_index].actionrolesequence='raa';}
+                            app.set({'game':game});
+                            app.phasefinishfunction(true);
+                        } else {
+                            app.phasefinishfunction();
+                        }
+                    }
                 }
             ]
         },
+        //check for permanent tech logistics
+        //offer wether to perform the role or the action phases first
+        //simply add an extra action phase that occurs if the role was choosen first, set all action phase one's to cancel if role was choosen first
 
         // action : 2
         //      choose from hand an action to play or skip
@@ -65,6 +132,8 @@ let game = {
         {
             'action':
             [
+                //check for permanent tech productivity
+                //add an extra action
                 {
                     'Choose an Action to Play':
                         ()=>{
@@ -93,7 +162,9 @@ let game = {
                                         choices:[card]
                                     }
                                 } = app.get();
-
+                                player = game.players[game.acting_player_index];
+                                limbo = player.limbo;
+                                hand = player.hand;
                                 player.activeaction=card.type;
                                 limbo = limbo.filter(
                                     (el)=>{return card.identifier != el.identifier;}
@@ -108,9 +179,9 @@ let game = {
                                 );
                                 player.limbo = limbo;
                                 player.hand=hand;
-                                game.acting_player = player;
+                                game.players[app.get().game.acting_player_index] = player;
                                 app.set({'game':game});
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
 
                             }
                         }
@@ -125,13 +196,13 @@ let game = {
                 {
                     'Choose between Settling or Colonizing a Planet':
                         ()=>{   
-                            if (app.get().game.acting_player.activeaction!='colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction!='colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
                                     false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                                     false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
-                                    ['options', [{name:'colonize'}, {name:'settle_colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                    ['options', [{name:'Colonize'}, {name:'Settle Colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
                                     'choices' /* label for where the choice is stored | set with game[label]=*/,
                                     app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
                                 );
@@ -141,7 +212,7 @@ let game = {
                 {
                     'Choose an Unsettled Planet to Settle':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -157,18 +228,18 @@ let game = {
                 {
                     'Settling your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {   
-								app.settle_colonies(app.get().game.subchoices[0], app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.settle_colonies(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose an Unsettled Planet to Colonize':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -184,11 +255,11 @@ let game = {
                 {
                     'Colonizing your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {
-                                app.colonize(app.get().game.subchoices[0], app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'colonize'})[0]);
-                                app.phasefinishfunction();
+                                app.colonize(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index].limbo , app.get().game.players[app.get().game.acting_player_index].limbo.filter((el)=>{ return el.type == 'colonize'})[0]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -202,7 +273,7 @@ let game = {
                 {
                     'Choose between Producing or Trading Resources':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction!='producetrade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction!='producetrade'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -218,7 +289,7 @@ let game = {
                 {
                     'Choose a Planet to Produce Resources on':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'producetrade' || app.get().game.choices[0].name != 'produce'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'producetrade' || app.get().game.choices[0].name != 'produce'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -234,18 +305,18 @@ let game = {
                 {
                     'Producing a Resource':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'producetrade' || app.get().game.choices[0].name != 'produce'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'producetrade' || app.get().game.choices[0].name != 'produce'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.produce(app.get().game.subchoices);
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose a Planet to Trade Resources from':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'producetrade' || app.get().game.choices[0].name != 'trade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'producetrade' || app.get().game.choices[0].name != 'trade'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -261,11 +332,11 @@ let game = {
                 {
                     'Trading a Resource':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'producetrade' || app.get().game.choices[0].name != 'trade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'producetrade' || app.get().game.choices[0].name != 'trade'){
                                 app.phasefinishfunction();
                             } else {    
-                                app.trade(app.get().game.subchoices,app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.trade(app.get().game.subchoices,app.get().game.players[app.get().game.acting_player_index]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -276,7 +347,7 @@ let game = {
                 {
                     'Choose a Role Card to Replace Politics with':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'politics' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'politics' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -292,11 +363,11 @@ let game = {
                 {
                     'Swapping the Role Card for your Politics Card':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'politics' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'politics' ){
                             app.phasefinishfunction();
                         } else {    
-                            app.politics(app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'politics'})[0], app.get().game.choices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.politics(app.get().game.players[app.get().game.acting_player_index].limbo.filter((el)=>{ return el.type == 'politics'})[0], app.get().game.choices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -307,7 +378,7 @@ let game = {
                 {
                     'Choose up to 2 Cards from your Hand to Remove from the Game':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'research' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'research' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -323,11 +394,11 @@ let game = {
                 {
                     'Removing your Cards from the Game':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'research' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'research' ){
                             app.phasefinishfunction();
                         } else {    
-                            app.research(app.get().game.choices, app.get().game.acting_player);
-                           app.phasefinishfunction();
+                            app.research(app.get().game.choices, app.get().game.players[app.get().game.acting_player_index]);
+                           app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -337,11 +408,11 @@ let game = {
                 {
                     'Surveying your Empire':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'survey' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'survey' ){
                                app.phasefinishfunction();
                             } else {    
-                                app.survey(app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.survey(app.get().game.players[app.get().game.acting_player_index]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -354,7 +425,7 @@ let game = {
                 {
                     'Choose between Collecting a Starfighter or Conquering a Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'warfare' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'warfare' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -370,18 +441,18 @@ let game = {
                 {
                     'Adding a Starfighter to your Fleet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'warfare' || app.get().game.choices[0].name!='Collect a Starfighter'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'warfare' || app.get().game.choices[0].name!='Collect a Starfighter'){
                             app.phasefinishfunction();
                         } else {    
-                            app.warfare(app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.warfare(app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
                 {
                     'Choose a Planet to Conquer':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -397,11 +468,13 @@ let game = {
                 {
                     'Conquering your planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
-                            app.conquer(app.get().game.subchoices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.conquer(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            //check for permanent tech scorched earth policy
+                            //remove production zone from planet
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -418,7 +491,7 @@ let game = {
                 {
                     'Choose wether or not to Settle a Planet ':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_colonize' || app.get().game.choices[0].name!='settle'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_colonize'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -434,7 +507,7 @@ let game = {
                 {
                     'Choose a Planet to Settle':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_colonize' || app.get().game.choices[0].name!='settle'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_colonize' || app.get().game.choices[0].name!='settle'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -450,24 +523,26 @@ let game = {
                 {
                     'Settling your Planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_colonize' || app.get().game.choices[0].name!='settle'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_colonize' || app.get().game.choices[0].name!='settle'){
                             app.phasefinishfunction();
                         } else {    
-                            app.settle_colonies(app.get().game.subchoices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.settle_colonies(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            // check for permanent tech abundance
+                            // change production slots to filled
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
                 {
                     'Choose between Settling or Colonizing a Planet':
                         ()=>{   
-                            if (app.get().game.acting_player.activeaction!='improved_colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction!='improved_colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
                                     false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                                     false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
-                                    ['options', [{name:'colonize'}, {name:'settle_colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                    ['options', [{name:'Colonize'}, {name:'Settle Colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
                                     'choices' /* label for where the choice is stored | set with game[label]=*/,
                                     app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
                                 );
@@ -477,7 +552,7 @@ let game = {
                 {
                     'Choose an Unsettled Planet to Settle':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -493,18 +568,20 @@ let game = {
                 {
                     'Settling your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {
-								app.settle_colonies(app.get().game.subchoices[0], app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.settle_colonies(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                                // check for permanent tech abundance
+                                // change production slots to filled
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose an Unsettled Planet to Colonize':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -520,11 +597,11 @@ let game = {
                 {
                     'Colonizing your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {    
-                                app.colonize(app.get().game.subchoices[0], app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'improved_colonize'})[0]);
-                                app.phasefinishfunction();
+                                app.colonize(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index].limbo , app.get().game.players[app.get().game.acting_player_index].limbo.filter((el)=>{ return el.type == 'improved_colonize'})[0]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -537,7 +614,7 @@ let game = {
                 {
                     'Choose an empty Production Zone to Produce in':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_production' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_production' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -553,18 +630,18 @@ let game = {
                 {
                     'Producing your Resource':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_production' || app.get().game.choices[0].name=='Skip' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_production' || app.get().game.choices[0].name=='Skip' ){
                                 app.phasefinishfunction();
                             } else {   
                                 app.produce(app.get().game.choices);
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose an empty Production Zone to Produce in':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_production' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_production' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -580,11 +657,11 @@ let game = {
                 {
                     'Producing your Resource':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_production'|| app.get().game.choices[0].name=='Skip' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_production'|| app.get().game.choices[0].name=='Skip' ){
                                 app.phasefinishfunction();
                             } else {   
                                 app.produce(app.get().game.choices);
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -594,13 +671,13 @@ let game = {
                 {
                     'Trading your Stocks and Bonds':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'improved_trade' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_trade' ){
                                 app.phasefinishfunction();
                             } else {   
                                 let game = app.get().game;
-                                game.acting_player.influence.push(game.influence.pop());
+                                game.players[app.get().game.acting_player_index].influence.push(game.influence.pop());
                                 app.set({'game':game});
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -611,10 +688,10 @@ let game = {
                 {
                     'Choose up to 3 Cards from your Hand to Remove from the Game':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_research' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_research' ){
                                 app.phasefinishfunction();
                             } else {    
-                                app.draw(app.get().game.acting_player);
+                                app.draw(app.get().game.players[app.get().game.acting_player_index]);
                                 app.offer(
                                     false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                                     true /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
@@ -628,11 +705,11 @@ let game = {
                 {
                     'Removing your Cards from the Game':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_research' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_research' ){
                             app.phasefinishfunction();
                         } else {    
-							research(app.get().game.choices, app.get().game.acting_player, 3);
-                            app.phasefinishfunction();
+                            research(app.get().game.choices, app.get().game.players[app.get().game.acting_player_index], 3);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -642,13 +719,13 @@ let game = {
                 {
                     'Drawing your Cards':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_survey' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_survey' ){
                             app.phasefinishfunction();
                         } else {    
-            				app.draw(app.get().game.acting_player);
-            				app.draw(app.get().game.acting_player);
-            				app.draw(app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.draw(app.get().game.players[app.get().game.acting_player_index]);
+                            app.draw(app.get().game.players[app.get().game.acting_player_index]);
+                            app.draw(app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -661,7 +738,7 @@ let game = {
                 {
                     'Choose between Collecting a Starfighter or Conquering a Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'improved_warfare' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_warfare' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -677,19 +754,19 @@ let game = {
                 {
                     'Adding a Starfighter to your Fleet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_warfare' || app.get().game.choices[0].name!='Collect a Starfighter'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_warfare' || app.get().game.choices[0].name!='Collect a Starfighter'){
                             app.phasefinishfunction();
                         } else {    
-                            app.warfare(app.get().game.acting_player);
-                            app.warfare(app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.warfare(app.get().game.players[app.get().game.acting_player_index]);
+                            app.warfare(app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
                 {
                     'Choose a Planet to Conquer':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -705,11 +782,11 @@ let game = {
                 {
                     'Conquering your planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'improved_warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'improved_warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
-                            app.conquer(app.get().game.subchoices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.conquer(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -722,12 +799,12 @@ let game = {
                 {
                     'Collecting your Star Fighters':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'mobilization'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'mobilization'){
                             app.phasefinishfunction();
                         } else {    
-                            app.warfare(app.get().game.acting_player);
-                            app.warfare(app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.warfare(app.get().game.players[app.get().game.acting_player_index]);
+                            app.warfare(app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -738,14 +815,15 @@ let game = {
                 {
                     'Adding Top Card of the Planet deck to your Empire':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'survey_team'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'survey_team'){
                                 app.phasefinishfunction();
                             } else {    
                                 let {game:game, game:{acting_player:player,planet_deck:planet_deck}} = app.get();
+                                player = game.players[game.acting_player_index];
                                 let planet = planet_deck.pop();
                                 player.unsettled_planets.push(planet);
                                 app.set({'game':game});
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -758,7 +836,7 @@ let game = {
                 {
                     'Choose a Planet to Conquer':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'war_path' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'war_path' ){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -774,18 +852,18 @@ let game = {
                 {
                     'Conquering your planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'war_path' || app.get().game.choices[0].name!='Skip'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'war_path' || app.get().game.choices[0].name!='Skip'){
                             app.phasefinishfunction();
                         } else {    
-                            app.conquer(app.get().game.choices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.conquer(app.get().game.choices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
                 {
                     'Choose a Planet to Conquer':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'war_path' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'war_path' ){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -801,11 +879,11 @@ let game = {
                 {
                     'Conquering your planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'war_path' || app.get().game.choices[0].name!='Skip'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'war_path' || app.get().game.choices[0].name!='Skip'){
                             app.phasefinishfunction();
                         } else {    
-                            app.conquer(app.get().game.choices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.conquer(app.get().game.choices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -816,7 +894,7 @@ let game = {
                 {
                     'Choose an Unsettled Planet to Terraform':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'terraforming'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'terraforming'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -832,17 +910,17 @@ let game = {
                 {
                     'Terraforming your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activeaction != 'terraforming' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'terraforming' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {    
-                                app.colonize(app.get().game.choices[0], app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'terraforming'})[0]);
+                                app.colonize(app.get().game.choices[0], app.get().game.players[app.get().game.acting_player_index].limbo , app.get().game.players[app.get().game.acting_player_index].limbo.filter((el)=>{ return el.type == 'terraforming'})[0]);
                                 if (app.get().game.choices[0].hosted_colonies.length > 0){
-                                    let c = app.get().game.choices[0].hosted_colonies.reduce((acc, cur)=>{acc+cur.icons.colonize});
+                                    let c = app.get().game.choices[0].hosted_colonies.reduce((acc, cur)=>{acc+cur.icons.colonize;});
                                     if (c >= app.get().game.choices[0].settle_cost){
-                                        app.settle_colonies(app.get().game.choices[0], app.get().game.acting_player);
+                                        app.settle_colonies(app.get().game.choices[0], app.get().game.players[app.get().game.acting_player_index]);
                                     }
                                 }
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -852,7 +930,7 @@ let game = {
                 {
                     'Engineering Genetics':
                     ()=>{
-                        if (app.get().game.acting_player.activeaction != 'genetic_engineering'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'genetic_engineering'){
                             app.phasefinishfunction();
                         } else {    
                             app.phasefinishfunction();
@@ -868,7 +946,7 @@ let game = {
                 {
                     'Select a Role Card to take into your Hand':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'artificial_intelligence'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'artificial_intelligence'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -884,23 +962,24 @@ let game = {
                 {
                     'Adding Role Card to your Machine Learning Model':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'artificial_intelligence'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'artificial_intelligence'){
                                 app.phasefinishfunction();
                             } else {    
                                 let {game:game,game:{acting_player:player}}=app.get();
+                                player = game.players[game.acting_player_index];
                                 if (game.stacks.pilecount[game.choices[0].type] >= 1){
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
                                     game.stacks.pilecount[game.choices[0].type]--;
                                 }
                                 app.set({'game':game});
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Select a Role Card to take into your Hand':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'artificial_intelligence'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'artificial_intelligence'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -916,16 +995,17 @@ let game = {
                 {
                     'Adding Role Card to your Machine Learning Model':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'artificial_intelligence'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'artificial_intelligence'){
                                 app.phasefinishfunction();
                             } else {    
                                 let {game:game,game:{acting_player:player}}=app.get();
+                                player = game.players[game.acting_player_index];
                                 if (game.stacks.pilecount[game.choices[0].type] >= 1){
                                     player.hand.push(Object.assign({'identifier':app.generate_unique_identifier()}, game.stacks.rolecards[game.stacks[game.choices[0].type]]));
                                     game.stacks.pilecount[selected_center_card.type]--;
                                 }
                                 app.set({'game':game});
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -935,7 +1015,7 @@ let game = {
                 {
                     'Diversifying Markets':
                     ()=>{
-                        if (app.get().game.acting_player.activeaction != 'diverse_markets'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'diverse_markets'){
                            app.phasefinishfunction();
                         } else {    
                             app.phasefinishfunction();
@@ -949,7 +1029,7 @@ let game = {
                 {
                     'Choose a Resource to Specialize in':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'specialization'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'specialization'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -965,12 +1045,12 @@ let game = {
                 {
                     'Specializaing in your Seleted Resource':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'specialization'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'specialization'){
                                 app.phasefinishfunction();
                             } else {    
                                 let game = app.get().game;
-                                game.acting_player.specialization = game.choices[0].name;
-                                app.phasefinishfunction();
+                                game.players[app.get().game.acting_player_index].specialization = game.choices[0].name;
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -982,19 +1062,19 @@ let game = {
                 {
                     'Drawing Your Cards':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'data_network'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'data_network'){
                                 app.phasefinishfunction();
                             } else {    
-                                app.draw(app.get().game.acting_player);
-                                app.draw(app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.draw(app.get().game.players[app.get().game.acting_player_index]);
+                                app.draw(app.get().game.players[app.get().game.acting_player_index]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose any number of Cards from your Hand to Remove from the Game':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'data_network'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'data_network'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1004,19 +1084,20 @@ let game = {
                                     'choices' /* label for where the choice is stored | set with game[label]=*/,
                                     app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
                                 );
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Removing the Selected Cards from the Game':
                         ()=>{
-                            if (app.get().game.acting_player.activeaction != 'data_network' || app.get().game.choices[0].name == 'Skip'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'data_network' || app.get().game.choices[0].name == 'Skip'){
                                 app.phasefinishfunction();
                             } else {    
                                 let { game:game, game: { choices:choices, acting_player:player } } = app.get();
+                                player = game.players[game.acting_player_index];
                                 app.research(choices,player,choices.length);
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -1050,16 +1131,16 @@ let game = {
                     ()=>{ 
                         let {game:game,game:{choices:[card]}} = app.get();
                         if (game.stacks.pilecount[card.type] >= 1){
-                            game.acting_player.boostingicons[card.type]++;
+                            game.players[app.get().game.acting_player_index].boostingicons[card.type]++;
                             let newcard = Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard','selected':true},game.stacks.rolecards[game.stacks[card.type]]);
-                            game.acting_player.limbo.push(newcard);
+                            game.players[app.get().game.acting_player_index].limbo.push(newcard);
                             game.stacks.pilecount[card.type]--;
                         } else if (card.type!='colonize'){
-                            game.acting_player.boostingicons[card.type]++;
+                            game.players[app.get().game.acting_player_index].boostingicons[card.type]++;
                         }
-                        game.acting_player.activerole = card.type;
+                        game.players[app.get().game.acting_player_index].activerole = card.type;
                         app.set({'game':game});
-                        app.phasefinishfunction();
+                        app.phasefinishfunction(true);
                     }
                 },
             ]
@@ -1115,11 +1196,18 @@ let game = {
                                     choices:cards
                                 }
                             } = app.get();
+                        player = game.players[game.acting_player_index];
+                        limbo = player.limbo;
+                        hand = player.hand;
                         if (cards[0].name=='Skip'){
                             app.phasefinishfunction();
                         } else {
                             for (let i in cards){
                                 player.boostingicons[cards[i].type]++;
+                                // check for permanent tech adaptability
+                                // add one of each other icon to the player
+                                // also change so that it will simply merge the card's icons with the player's, cuz this way doesnt count technology card's icons
+
                             //     limbo.push(
                             //         {'final_destination_label':'discard', 
                             //         ...hand.filter(
@@ -1135,7 +1223,7 @@ let game = {
                             //TODO: tally up icons on planets
                             //TODO: tally up icons on technologies
                             app.set({'game':game});
-                            app.phasefinishfunction();
+                            app.phasefinishfunction(true);
                         }
                     }
                 }, 
@@ -1150,13 +1238,13 @@ let game = {
                 {
                     'Choose between Settling or Colonizing a Planet':
                         ()=>{   
-                            if (app.get().game.acting_player.activerole!='colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole!='colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
                                     false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                                     false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
-                                    ['options', [{name:'colonize'}, {name:'settle_colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                    ['options', [{name:'Colonize'}, {name:'Settle Colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
                                     'choices' /* label for where the choice is stored | set with game[label]=*/,
                                     app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
                                 );
@@ -1166,7 +1254,7 @@ let game = {
                 {
                     'Choose an Unsettled Planet to Settle':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1182,18 +1270,20 @@ let game = {
                 {
                     'Settling your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {   
-								app.settle_colonies(app.get().game.subchoices[0], app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.settle_colonies(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                                // check for permanent tech abundance
+                                // change production slots to filled
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose an Unsettled Planet to Colonize':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1209,22 +1299,21 @@ let game = {
                 {
                     'Colonizing your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {   
                                 let j = 0; 
                                 let planet = app.get().game.subchoices[j];
-                                for (let i = 0; i < app.get().game.acting_player.boostingicons.colonize; i++ ){
+                                for (let i = 0; i < app.get().game.players[app.get().game.acting_player_index].boostingicons.colonize; i++ ){
                                     
                                     if (planet.hosted_colonies.length > 0 ){
                                         if(planet.hosted_colonies.reduce((acc, cur)=>{return acc+cur.icons.colonize}) >= planet.settle_cost && j < app.get().game.subchoices.length-1 ){
-                                            j++
+                                            j++;
                                             planet = app.get().game.subchoices[j];
-                                        };
-                                    }
-                                    app.colonize(planet, app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'colonize'})[0]);
+                                        }                                    }
+                                    app.colonize(planet, app.get().game.players[app.get().game.acting_player_index].limbo , app.get().game.players[app.get().game.acting_player_index].limbo.filter((el)=>{ return el.type == 'colonize'})[0]);
                                 }
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -1238,7 +1327,7 @@ let game = {
                 {
                     'Choose between Producing or Trading Resources':
                         ()=>{
-                            if (app.get().game.acting_player.activerole!='producetrade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole!='producetrade'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1254,7 +1343,7 @@ let game = {
                 {
                     'Choose a Planet to Produce Resources on':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'producetrade' || app.get().game.choices[0].name != 'produce'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'producetrade' || app.get().game.choices[0].name != 'produce'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1270,29 +1359,29 @@ let game = {
                 {
                     'Producing a Resource':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'producetrade' || app.get().game.choices[0].name != 'produce'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'producetrade' || app.get().game.choices[0].name != 'produce'){
                                 app.phasefinishfunction();
                             } else {
                                 ///app.set( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
                                 let game = app.get().game;
-                                game.acting_player.activerole='produce';
+                                game.players[app.get().game.acting_player_index].activerole='produce';
                                 app.set({'game':game});
-                                let prd = app.produce(game.subchoices,game.acting_player.boostingicons.produce);
-                                if (app.get().game.acting_player.activeaction='genetic_engineering'){
+                                let prd = app.produce(game.subchoices,game.players[app.get().game.acting_player_index].boostingicons.produce);
+                                if (app.get().game.players[app.get().game.acting_player_index].activeaction='genetic_engineering'){
                                     for (let i in prd){
                                         if (prd[i] > 1){
                                             players[j].influence.push(game.influence.pop());
                                         }
                                     }
                                 }
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose a Planet to Trade Resources from':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'producetrade' || app.get().game.choices[0].name != 'trade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'producetrade' || app.get().game.choices[0].name != 'trade'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1308,26 +1397,26 @@ let game = {
                 {
                     'Trading a Resource':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'producetrade' || app.get().game.choices[0].name != 'trade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'producetrade' || app.get().game.choices[0].name != 'trade'){
                                 app.phasefinishfunction();
                             } else {   
                                 let game = app.get().game;
-                                game.acting_player.activerole='trade';
+                                game.players[app.get().game.acting_player_index].activerole='trade';
                                 app.set({'game':game}); 
-                                let prd = app.trade(game.subchoices,game.acting_player, game.acting_player.boostingicons.trade);
-                                if (app.get().game.acting_player.activeaction='diverse_markets'){
+                                let prd = app.trade(game.subchoices,game.players[app.get().game.acting_player_index], game.players[app.get().game.acting_player_index].boostingicons.trade);
+                                if (app.get().game.players[app.get().game.acting_player_index].activeaction='diverse_markets'){
                                     for (let i in prd){
                                         if (prd[i] > 1){
-                                            app.get().game.acting_player.influence.push(app.get().game.influence.pop());
+                                            app.get().game.players[app.get().game.acting_player_index].influence.push(app.get().game.influence.pop());
                                         }
                                     }
                                 }
-                                if (app.get().game.acting_player.activeaction='specialization'){
-                                    for ( let i in Array.from( prd[app.get().game.acting_player.specialization] ) ) {
-                                        app.get().game.acting_player.influence.push(app.get().game.influence.pop());
+                                if (app.get().game.players[app.get().game.acting_player_index].activeaction='specialization'){
+                                    for ( let i in Array.from( prd[app.get().game.players[app.get().game.acting_player_index].specialization] ) ) {
+                                        app.get().game.players[app.get().game.acting_player_index].influence.push(app.get().game.influence.pop());
                                     }
                                 }
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -1338,7 +1427,7 @@ let game = {
                 {
                     'Choose a Technology to Research':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'research' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'research' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1354,30 +1443,34 @@ let game = {
                 {
                     'Researching your Technology':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'research' ){
-                        app.phasefinishfunction();
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'research' ){
+                            app.phasefinishfunction();
                         } else {    
                             let game = app.get().game;
                             if (game.choices[0].name!="Skip"){
                                 //TODO check research card requirements
                                 //check for number of planets and type of planets
                                 let p = {'advanced':0,'metallic':0,'fertile':0};
-                                [...game.acting_player.settled_planets, ...game.acting_player.conquered_planets].map(
+                                [...game.players[app.get().game.acting_player_index].settled_planets, ...game.players[app.get().game.acting_player_index].conquered_planets].map(
                                     (el)=>{
                                         p[el.type]++;
                                     }
-                                )
+                                );
                                 let condition = true;
                                 for (let i in game.choices[0].planet_requirements){
                                     if (game.choices[0].planet_requirements[i] > p[i]){
                                         condition = false;
                                     }
                                 }
-                                if (condition && game.acting_player.boostingicons.research >= game.choices[0].research_cost){
-                                    app.play(game.research_deck, game.acting_player.limbo, 'discard', game.choices[0].identifier);
+                                if (condition && game.players[app.get().game.acting_player_index].boostingicons.research >= game.choices[0].research_cost){
+                                    if (game.choices[0].is_permanent){
+                                        app.play(game.research_deck, game.players[app.get().game.acting_player_index].permanents, '', game.choices[0].identifier);
+                                    } else {
+                                        app.play(game.research_deck, game.players[app.get().game.acting_player_index].limbo, 'discard', game.choices[0].identifier);
+                                    }
                                 }
                             }
-                            app.phasefinishfunction();
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -1388,13 +1481,13 @@ let game = {
                 {
                     'Choose a Planet from your Galaxy to Explore':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'survey' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'survey' ){
                             app.phasefinishfunction();
                         } else {    
                             let game = app.get().game;
                             //survey_role purchase, offer_to_boost explore_planet, present_as_choice, choose, catalog_planet, discard
-                            for (let i = 0; i < app.get().game.acting_player.boostingicons.survey; i++){
-                                app.explore_planet(game.acting_player); 
+                            for (let i = 0; i < app.get().game.players[app.get().game.acting_player_index].boostingicons.survey; i++){
+                                app.explore_planet(game.players[app.get().game.acting_player_index]); 
                             }
                             app.set({'game':game});
                             app.offer(
@@ -1410,11 +1503,11 @@ let game = {
                 {
                     'Surveying your Empire':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'survey' || app.get().game.choices[0].name=='Skip'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'survey' || app.get().game.choices[0].name=='Skip'){
                                 app.phasefinishfunction();
                             } else {    
-                                app.catalog_planet(app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.catalog_planet(app.get().game.players[app.get().game.acting_player_index]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -1427,7 +1520,7 @@ let game = {
                 {
                     'Choose between Collecting Starfighters or Conquering a Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'warfare' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1443,20 +1536,20 @@ let game = {
                 {
                     'Adding Starfighters to your Fleet':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Collect Starfighters'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' || app.get().game.choices[0].name!='Collect Starfighters'){
                             app.phasefinishfunction();
                         } else {    
-                            for (let i = 0; i < app.get().game.acting_player.boostingicons.warfare; i++){
-                                app.warfare(app.get().game.acting_player);
+                            for (let i = 0; i < app.get().game.players[app.get().game.acting_player_index].boostingicons.warfare; i++){
+                                app.warfare(app.get().game.players[app.get().game.acting_player_index]);
                             }
-                            app.phasefinishfunction();
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
                 {
                     'Choose a Planet to Conquer':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -1472,11 +1565,11 @@ let game = {
                 {
                     'Conquering your planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
-                            app.conquer(app.get().game.subchoices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.conquer(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -1496,7 +1589,7 @@ let game = {
                         //app.togglepasstoplayer();
                         game.passp=false;
                         app.set({'game':game});
-                        app.phasefinishfunction();
+                        app.phasefinishfunction(true);
                     }
                 },
             ]
@@ -1544,7 +1637,7 @@ let game = {
                         app.offer(
                             false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                             false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
-                            ['options', [{name:'dissent'}, {name:app.get().game.leadingplayer.activerole}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                            ['options', [{name:'dissent'}, {name:app.get().game.players[app.get().game.leading_player_index].activerole}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
                             'choices' /* label for where the choice is stored | set with game[label]=*/,
                             app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
                         );
@@ -1554,20 +1647,33 @@ let game = {
                     'Dissenting':
                     ()=>{ 
                         let game = app.get().game;
-                        game.acting_player.activerole=game.choices[0].name;
+                        game.players[app.get().game.acting_player_index].activerole=game.choices[0].name;
                         app.set({'game':game});
-                        if (app.get().game.acting_player.activerole!='dissent'){
-                            app.phasefinishfunction();
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole!='dissent'){
+                            let {game:game,game:{choices:[card]}} = app.get();
+                            if (game.stacks.pilecount[card.name] >= 1){
+                                game.players[app.get().game.acting_player_index].boostingicons[card.name]++;
+                                let newcard = Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard','selected':true},game.stacks.rolecards[game.stacks[card.name]]);
+                                game.players[app.get().game.acting_player_index].limbo.push(newcard);
+                                game.stacks.pilecount[card.name]--;
+                            } else if (card.name!='colonize'){
+                                game.players[app.get().game.acting_player_index].boostingicons[card.name]++;
+                            }
+                            app.set({'game':game});
+                            app.phasefinishfunction(true);
                         } else {    
-                            app.draw(app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.draw(app.get().game.players[app.get().game.acting_player_index]);
+                            if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='dissension'} ).length != 0){
+                                app.draw(app.get().game.players[app.get().game.acting_player_index]);
+                            }
+                            app.phasefinishfunction(true);
                         }
                     }
                 }, //will auto pass to next phase if follow has been selected
                 {
                     'Choose cards from your hand to Boost the effectiveness of your Role' :
                     ()=>{
-                        if (app.get().game.acting_player.activerole=='dissent'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole=='dissent'){
                             app.phasefinishfunction();
                         } else {   
                             app.offer(
@@ -1583,7 +1689,7 @@ let game = {
                 {
                     'Boosting your Role' :
                     ()=>{
-                        if (app.get().game.acting_player.activerole=='dissent'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole=='dissent'){
                             app.phasefinishfunction();
                         } else {  
                             let { game:game, 
@@ -1596,11 +1702,18 @@ let game = {
                                         choices:cards
                                     }
                                 } = app.get();
+                            player = game.players[game.acting_player_index];
+                            limbo = player.limbo;
+                            hand = player.hand;
                             if (cards[0].name=='Skip'){
                                 app.phasefinishfunction();
                             } else {
                                 for (let i in cards){
                                     player.boostingicons[cards[i].type]++;
+                                    // check for permanent tech adaptability
+                                    // add one of each other icon to the player
+                                    // also change so that it will simply merge the card's icons with the player's, cuz this way doesnt count technology card's icons
+
                                     // limbo.push(
                                     //     {'final_destination_label':'discard', 
                                     //     ...hand.filter(
@@ -1616,7 +1729,7 @@ let game = {
                                 //TODO: tally up icons on planets
                                 //TODO: tally up icons on technologies
                                 app.set({'game':game});
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                     }
@@ -1632,17 +1745,18 @@ let game = {
                 {
                     'Choose between Settling or Colonizing a Planet':
                         ()=>{   
-                            if (app.get().game.acting_player.activerole!='colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole!='colonize'){
                                app.phasefinishfunction();
-                            } else if ( game.acting_player.permanents.filter( (el)=>{return el.type=='bureaucracy'} ).length == 0){
+                            } else if ( app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='bureaucracy'} ).length == 0){
                                 let game = app.get().game;
-                                game.choices=['colonize'];
-                                app.phasefinishfunction();
+                                game.choices=[{name:'Colonize'}];
+                                app.set({'game':game});
+                                app.phasefinishfunction(true);
                             } else {    
                                 app.offer(
                                     false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
                                     false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
-                                    ['options', [{name:'colonize'}, {name:'settle_colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                    ['options', [{name:'Colonize'}, {name:'Settle Colonies'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
                                     'choices' /* label for where the choice is stored | set with game[label]=*/,
                                     app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
                                 );
@@ -1652,7 +1766,7 @@ let game = {
                 {
                     'Choose an Unsettled Planet to Settle':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1668,18 +1782,20 @@ let game = {
                 {
                     'Settling your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'settle_colonies'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Settle Colonies'){
                                 app.phasefinishfunction();
                             } else {   
-								app.settle_colonies(app.get().game.subchoices[0], app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.settle_colonies(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                                // check for permanent tech abundance
+                                // change production slots to filled
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
                 {
                     'Choose an Unsettled Planet to Colonize':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1695,21 +1811,20 @@ let game = {
                 {
                     'Colonizing your Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'colonize' || app.get().game.choices[0].name != 'colonize'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'colonize' || app.get().game.choices[0].name != 'Colonize'){
                                 app.phasefinishfunction();
                             } else {   
                                 let j = 0; 
                                 let planet = app.get().game.subchoices[j];
-                                for (let i = 0; i < app.get().game.acting_player.boostingicons.colonize; i++ ){
+                                for (let i = 0; i < app.get().game.players[app.get().game.acting_player_index].boostingicons.colonize; i++ ){
                                     if (planet.hosted_colonies.length > 0 ) {
-                                        if(planet.hosted_colonies.reduce((acc, cur)=>{acc+cur.icons.colonize}) >= planet.settle_cost && j < app.get().game.subchoices.length-1 ){
-                                            j++
+                                        if(planet.hosted_colonies.reduce((acc, cur)=>{acc+cur.icons.colonize;}) >= planet.settle_cost && j < app.get().game.subchoices.length-1 ){
+                                            j++;
                                             planet = app.get().game.subchoices[j];
-                                        };
-                                    }
-                                    app.colonize(planet, app.get().game.acting_player.limbo , app.get().game.acting_player.limbo.filter((el)=>{ return el.type == 'colonize'})[0]);
+                                        }                                    }
+                                    app.colonize(planet, app.get().game.players[app.get().game.acting_player_index].limbo , app.get().game.players[app.get().game.acting_player_index].limbo.filter((el)=>{ return el.type == 'colonize'})[0]);
                                 }
-                                app.phasefinishfunction();
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -1723,7 +1838,7 @@ let game = {
                 {
                     'Choose a Planet to Produce Resources on':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'produce'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'produce'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -1739,22 +1854,22 @@ let game = {
                 {
                     'Producing a Resource':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'produce'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'produce'){
                             app.phasefinishfunction();
                         } else {
                             ///app.set( {'game': { 'acting_player':{ 'activerole':'produce' } , ...app.get().game} } )    
                             let game = app.get().game;
-                            game.acting_player.activerole='produce';
+                            game.players[app.get().game.acting_player_index].activerole='produce';
                             app.set({'game':game});
-                            app.produce(game.subchoices,game.acting_player.boostingicons.produce);
-                            app.phasefinishfunction();
+                            app.produce(game.subchoices,game.players[app.get().game.acting_player_index].boostingicons.produce);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
                 {
                     'Choose a Planet to Trade Resources from':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'trade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'trade'){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1770,14 +1885,14 @@ let game = {
                 {
                     'Trading a Resource':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'trade'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'trade'){
                                 app.phasefinishfunction();
                             } else {   
                                 let game = app.get().game;
-                                game.acting_player.activerole='trade';
+                                game.players[app.get().game.acting_player_index].activerole='trade';
                                 app.set({'game':game}); 
-                                app.trade(game.subchoices,game.acting_player, game.acting_player.boostingicons.trade);
-                                app.phasefinishfunction();
+                                app.trade(game.subchoices,game.players[app.get().game.acting_player_index], game.players[app.get().game.acting_player_index].boostingicons.trade);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -1788,7 +1903,7 @@ let game = {
                 {
                     'Choose a Technology to Research':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'research' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'research' ){
                                 app.phasefinishfunction();
                             } else {    
                                 app.offer(
@@ -1804,30 +1919,28 @@ let game = {
                 {
                     'Researching your Technology':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'survey' ){
-                        app.phasefinishfunction();
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'survey' ){
+                            app.phasefinishfunction();
                         } else {    
                             let game = app.get().game;
                             if (game.choices[0].name!="Skip"){
-                                //TODO check research card requirements
-                                //check for number of planets and type of planets
                                 let p = {'advanced':0,'metallic':0,'fertile':0};
-                                [...game.acting_player.settled_planets, ...game.acting_player.conquered_planets].map(
+                                [...game.players[app.get().game.acting_player_index].settled_planets, ...game.players[app.get().game.acting_player_index].conquered_planets].map(
                                     (el)=>{
                                         p[el.type]++;
                                     }
-                                )
+                                );
                                 let condition = true;
                                 for (let i in game.choices[0].planet_requirements){
                                     if (game.choices[0].planet_requirements[i] > p[i]){
                                         condition = false;
                                     }
                                 }
-                                if (condition && game.acting_player.boostingicons.research >= game.choices[0].research_cost){
-                                    app.play(game.research_deck, game.acting_player.limbo, 'discard', game.choices[0].identifier);
+                                if (condition && game.players[app.get().game.acting_player_index].boostingicons.research >= game.choices[0].research_cost){
+                                    app.play(game.research_deck, game.players[app.get().game.acting_player_index].limbo, 'discard', game.choices[0].identifier);
                                 }
                             }
-                            app.phasefinishfunction();
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -1838,13 +1951,13 @@ let game = {
                 {
                     'Choose a Planet from your Galaxy to Explore':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'survey' ){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'survey' ){
                             app.phasefinishfunction();
                         } else {    
                             let game = app.get().game;
                             //survey_role purchase, offer_to_boost explore_planet, present_as_choice, choose, catalog_planet, discard
-                            for (let i = 0; i < game.acting_player.boostingicons.survey-1; i++){
-                                app.explore_planet(game.acting_player); 
+                            for (let i = 0; i < game.players[app.get().game.acting_player_index].boostingicons.survey-1; i++){
+                                app.explore_planet(game.players[app.get().game.acting_player_index]); 
                             }
                             app.set({'game':game});
                             app.offer(
@@ -1860,11 +1973,11 @@ let game = {
                 {
                     'Surveying your Empire':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'survey' || app.get().game.choices[0].name=='Skip'){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'survey' || app.get().game.choices[0].name=='Skip'){
                                 app.phasefinishfunction();
                             } else {    
-                                app.catalog_planet(app.get().game.acting_player);
-                                app.phasefinishfunction();
+                                app.catalog_planet(app.get().game.players[app.get().game.acting_player_index]);
+                                app.phasefinishfunction(true);
                             }
                         }
                 },
@@ -1877,12 +1990,13 @@ let game = {
                 {
                     'Choose between Collecting Starfighters or Conquering a Planet':
                         ()=>{        
-                            if (app.get().game.acting_player.activerole != 'warfare' ){
+                            if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' ){
                                 app.phasefinishfunction();
-                            } else if ( app.get().game.acting_player.permanents.filter( (el)=>{return el.type=='bureaucracy'} ).length == 0){
+                            } else if ( app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='bureaucracy'} ).length == 0){
                                 let game = app.get().game;
-                                game.choices=['Collect Starfighters'];
-                                app.phasefinishfunction();
+                                game.choices=[{name:'Collect Starfighters'}];
+                                app.set({'game':game});
+                                app.phasefinishfunction(true);
                             } else {    
                                 app.offer(
                                     false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
@@ -1897,20 +2011,20 @@ let game = {
                 {
                     'Adding Starfighters to your Fleet':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Collect Starfighters'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' || app.get().game.choices[0].name!='Collect Starfighters'){
                             app.phasefinishfunction();
                         } else {    
-                            for (let i = 0; i < app.get().game.acting_player.boostingicons.warfare; i++){
-                                app.warfare(app.get().game.acting_player);
+                            for (let i = 0; i < app.get().game.players[app.get().game.acting_player_index].boostingicons.warfare; i++){
+                                app.warfare(app.get().game.players[app.get().game.acting_player_index]);
                             }
-                            app.phasefinishfunction();
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
                 {
                     'Choose a Planet to Conquer':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -1926,11 +2040,11 @@ let game = {
                 {
                     'Conquering your planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activerole != 'warfare' || app.get().game.choices[0].name!='Conquer a Planet'){
                             app.phasefinishfunction();
                         } else {    
-                            app.conquer(app.get().game.subchoices[0], app.get().game.acting_player);
-                            app.phasefinishfunction();
+                            app.conquer(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]);
+                            app.phasefinishfunction(true);
                         }
                     }
                 },
@@ -1949,7 +2063,7 @@ let game = {
                         let game = app.get().game;
                         game.passp=false;
                         app.set({'game':game});
-                        app.phasefinishfunction();
+                        app.phasefinishfunction(true);
                     }
                 },
             ]
@@ -1964,7 +2078,7 @@ let game = {
                 {
                     'Would you like to Mobilize against a Planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'mobilization'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'mobilization'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -1980,7 +2094,7 @@ let game = {
                 {
                     'Choose a Planet to Mobilize Against':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'mobilization' || app.get().game.choices[0].name != 'mobilize'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'mobilization' || app.get().game.choices[0].name != 'mobilize'){
                             app.phasefinishfunction();
                         } else {    
                             app.offer(
@@ -1996,11 +2110,106 @@ let game = {
                 {
                     'Mobalizing against your Planet':
                     ()=>{        
-                        if (app.get().game.acting_player.activeaction != 'mobilization'){
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'mobilization'){
                             app.phasefinishfunction();
                         } else {   
-                            app.conquer(app.get().game.subchoices[0], app.get().game.acting_player); 
+                            app.conquer(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]); 
+                            app.phasefinishfunction(true);
+                        }
+                    }
+                },
+                {
+                    'Mobalizing against your Planet':
+                    ()=>{        
+                        if (app.get().game.players[app.get().game.acting_player_index].activeaction != 'mobilization'){
                             app.phasefinishfunction();
+                        } else {   
+                            app.conquer(app.get().game.subchoices[0], app.get().game.players[app.get().game.acting_player_index]); 
+                            app.phasefinishfunction(true);
+                        }
+                    }
+                },
+                {
+                    'Would you like to Streamline Your Empire':
+                    ()=>{        
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='streamlining'} ).length == 0){
+                            app.phasefinishfunction();
+                        } else {   
+                            app.offer(
+                                false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                                false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                                ['options', [{name:'Decline'}, {name:'Streamline Empire'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                'choices' /* label for where the choice is stored | set with game[label]=*/,
+                                app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
+                            );
+                        }
+                    }
+                },
+                {
+                    'Choose a Card from Your Hand to Remove from the Game':
+                    ()=>{        
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='streamlining'} ).length == 0 || app.get().game.choices[0].name != 'Streamline Empire'){
+                            app.phasefinishfunction();
+                        } else {   
+                            app.offer(
+                                true /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                                false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                                ['hand'] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                'subchoices' /* label for where the choice is stored | set with game[label]=*/,
+                                app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
+                            );
+                        }
+                    }
+                },
+                {
+                    'Streamlining Your Empire':
+                    ()=>{        
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='streamlining'} ).length == 0 || app.get().game.choices[0].name != 'Streamline Empire' || app.get().game.choices[0].name == 'Skip'){
+                            app.phasefinishfunction();
+                        } else {   
+                            app.research(app.get().game.choices, app.get().game.players[app.get().game.acting_player_index], 1);
+                        }
+                    }
+                },
+                {
+                    "Would you like to Utilize Your Empire's Hyperefficiency":
+                    ()=>{        
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='hyperefficiency'} ).length == 0){
+                            app.phasefinishfunction();
+                        } else {   
+                            app.offer(
+                                false /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                                false /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                                ['options', [{name:'Decline'}, {name:'Utilize Hyperefficiency'}]] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                'choices' /* label for where the choice is stored | set with game[label]=*/,
+                                app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
+                            );
+                        }
+                    }
+                },
+                {
+                    'Choose a Card from Your Hand to Remove from the Game':
+                    ()=>{        
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='hyperefficiency'} ).length == 0 || app.get().game.choices[0].name != 'Utilize Hyperefficiency'){
+                            app.phasefinishfunction();
+                        } else {   
+                            app.offer(
+                                true /*option to skip | sets game.displayinfo.showoptiontoskip=boolean */,
+                                true /*allows multiple choices | sets game.displayinfo.allowformultipleselections=boolean */, 
+                                ['hand'] /* available cards to choose from | game.displayinfo.selectionzone={'hand|discard|options|planets|research|rolecards'}, sets choices=array if specified*/, 
+                                'subchoices' /* label for where the choice is stored | set with game[label]=*/,
+                                app.phasefinishfunction /*callback that handles the choice or finishes the phase*/, 
+                            );
+                        }
+                    }
+                },
+                {
+                    'Your Empire is Hyperefficient':
+                    ()=>{        
+                        if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='hyperefficiency'} ).length == 0 || app.get().game.choices[0].name != 'Utilize Hyperefficiency' || app.get().game.choices[0].name == 'Skip'){
+                            app.phasefinishfunction();
+                        } else {   
+                            app.research(app.get().game.choices, app.get().game.players[app.get().game.acting_player_index], app.get().game.choices.length);
                         }
                     }
                 },
@@ -2024,11 +2233,11 @@ let game = {
                         } else {
                             let game = app.get().game;
                             for (let i in game.choices){
-                                // obsolete after drag and dop additions game.acting_player.hand = game.acting_player.hand.filter((el)=>{return el.identifier != game.choices[i].identifier});
-                                game.acting_player.discard.push(game.choices[i]);
+                                // obsolete after drag and dop additions game.players[app.get().game.acting_player_index].hand = game.players[app.get().game.acting_player_index].hand.filter((el)=>{return el.identifier != game.choices[i].identifier});
+                                game.players[app.get().game.acting_player_index].discard.push(game.choices[i]);
                             }
                             app.set({'game':game});
-                            app.phasefinishfunction();
+                            app.phasefinishfunction(true);
                         }
                     }
                 }
@@ -2042,20 +2251,19 @@ let game = {
                 {
                     'Drawing up to your Hand Size':
                     ()=>{ 
-                        console.log(app.get().game);
-                        let game = app.get().game;
-                        let handsize = game.acting_player.handsize;
-                        for (let index in game.acting_player.settled_planets){
-                            handsize+=game.acting_player.settled_planets[index].handsize_modifier;
-                        }
-                        for (let index in game.acting_player.conquered_planets){
-                            handsize+=game.acting_player.conquered_planets[index].handsize_modifier;
-                        }
-                        let l = game.acting_player.hand.length;
-                        if (l < handsize){
-                            app.draw(game.acting_player, handsize-l );
-                        }
                         app.cleanup();
+                        let game = app.get().game;
+                        let handsize = game.players[app.get().game.acting_player_index].handsize;
+                        for (let index in game.players[app.get().game.acting_player_index].settled_planets){
+                            handsize+=game.players[app.get().game.acting_player_index].settled_planets[index].handsize_modifier;
+                        }
+                        for (let index in game.players[app.get().game.acting_player_index].conquered_planets){
+                            handsize+=game.players[app.get().game.acting_player_index].conquered_planets[index].handsize_modifier;
+                        }
+                        let l = game.players[app.get().game.acting_player_index].hand.length;
+                        if (l < handsize){
+                            app.draw(game.players[app.get().game.acting_player_index], handsize-l );
+                        }
                         for (let i in game.players){
                             game.players[i].boostingicons = {'survey':0,'warfare':0,'colonize':0,'produce':0,'trade':0,'research':0};
                         }
@@ -2064,7 +2272,7 @@ let game = {
                             game.nextphase = app.endgame;
                         }
                         app.set({'game':game});
-                        app.phasefinishfunction();
+                        app.phasefinishfunction(true);
                     }
                 },
                 {
@@ -2072,6 +2280,8 @@ let game = {
                     ()=>{
                         let game = app.get().game;
                         game.displayinfo.selectionzone='';
+                        game.displayinfo.showoptiontoskip=false;
+                        game.displayinfo.allowformultipleselections=false;
                         game.passp=false;
                         game.passt=true;
                         app.set({'game':game});
@@ -2084,7 +2294,7 @@ let game = {
                         //app.togglepasstoplayer();
                         game.passt=false;
                         app.set({'game':game});
-                        app.phasefinishfunction();
+                        app.phasefinishfunction(true);
                     }
                 },
             ]
@@ -2094,10 +2304,8 @@ let game = {
     'winner':false,
     'stacks':{
         'pilecount':{
-            //'research':20,
-            //'producetrade':16,
-            'research':1,
-            'producetrade':1,
+            'research':20,
+            'producetrade':16,
             'colonize':20,
             'warfare':16,
             'survey':20
@@ -2145,7 +2353,7 @@ let game = {
     
 };
 //let url = 'ws://temperate-isle.herokuapp.com:3030';
-let url = 'ws://192.168.1.6:3030';
+let url = location.origin.replace(/^http/, 'ws');//'ws://192.168.1.6:3030';
 let lobby =
 {
     screenname:'',

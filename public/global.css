@@ -2,6 +2,8 @@ html, body {
 	position: relative;
 	width: 100%;
 	height: 100%;
+	overscroll-behavior: none;
+	overflow:hidden;
 }
 .hidden {
 	display: none;
@@ -20,9 +22,27 @@ html, body {
 	text-align: left;
 	font-size: 120%;
 }
+.planetfrontinfo{
+    position: absolute;
+    top: 0px;
+}
+.unsettled_costs {
+    position: absolute;
+	top: 0px;
+}
+.mini_settle_cost{
+	position: relative;
+	text-align: right;
+    font-size: 80%;
+}
+.mini_conquer_cost{
+	position: relative;
+	text-align: left;
+	font-size: 80%;
+}
 .hosted_colonies{
 	position: relative;
-	bottom: 30%;
+	bottom: 38%;
 	text-align: center;
     font-size: 120%;
 }
@@ -32,6 +52,35 @@ html, body {
 }
 .unsettled {
 	height: 95%;
+}
+.mini_unsettled > img{
+	width: auto;
+	height: 100%;
+}
+.mini_unsettled {
+	height: 100%;
+}
+.planetfront {
+	font-weight: bolder;
+	font-size: 50%;
+	height: 100%;
+	background-repeat: no-repeat;
+}
+.planetfront > div > img {
+	flex-direction: column;
+	height: 2em;
+	background-repeat: no-repeat;
+}
+.planetfront > img {
+	height: 100%;
+}
+.pass {
+	background-repeat: no-repeat;
+	height: 50px;
+	min-width: 200px;
+	background-image: url("./images/EMbutton200.png");
+	align-self: center;
+	text-align: center;
 }
 .pilecount{
 	position:relative;
@@ -45,9 +94,8 @@ html, body {
 	top:75%;
 }
 body {
-	color: #333;
 	margin: 0;
-	padding: 8px;
+	padding: 0px;
 	box-sizing: border-box;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 	color:rgb(49, 158, 177);
@@ -128,17 +176,21 @@ button {
    background-repeat: no-repeat;
    background-size: cover;
 }
-.options{
-	background-image: url("./images/embackground.png");
+.options, .talloptions{
+	background-image: url("../images/embackground.png");
 	background-repeat: no-repeat;
 	display:flex; 
 	flex-direction:row; 
+	justify-content: space-around;
 	position: absolute; 
-	right:30%;
+	right:10%;
 	top: 50%;
 	height: 15%;
-	width:20%;
+	width:80%;
 	font-size: 150%;
+}
+.talloptions{
+	height:30%;
 }
 .ownedcards{
 	display: flex;
@@ -204,19 +256,16 @@ button:focus {
 }
 .playedcards{
 	height:20%;
-	overflow-x:hidden;
+	overflow-x:scroll;
 	position:absolute;
 	top:55%;
 }
 .minicard{
 	height:100%;
 }
-.cutcard{
-}
 .bordered{
 	border: solid #000;
 	border-width: 1px;
-
 }
 ::-webkit-scrollbar { 
     display: none;  

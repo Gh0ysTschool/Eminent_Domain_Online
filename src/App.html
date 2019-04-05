@@ -40,9 +40,9 @@
 		{game.winner} WON!!!!
 	</div>
 {:else}
-	<div id="screen" style="height:98%;" class="flex">
+	<div id="screen" style="height:100%;width:100%;;" class="flex">
 		{#each game.players as player}
-			{#if game.acting_player!==undefined && ((lobby.screenname==player.name && lobby.online) || (game.acting_player.id==player.id && !lobby.online)) }
+			{#if game.players[game.acting_player_index]!==undefined && ((lobby.screenname==player.name && lobby.online) || (game.players[game.acting_player_index].id==player.id && !lobby.online)) }
 				<div class="bordered playingfield">
 						<!-- <div class='blowup'></div> -->
 					<div id='dragged'></div>
@@ -60,7 +60,7 @@
                         <div class="zone researchrow">
 							{#each game.research_deck as card}
 							<div>
-                                <img src="{card.imgurl}" on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="{(game.displayinfo.selectionzone=='research') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}" alt="{card.name}">
+                                <img src="{card.imgurl}" on:click="choosewrapper(card,'research')" on:tap="choosewrapper(card,'research')" class="{(game.displayinfo.selectionzone=='research') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}" alt="{card.name}">
 							</div>
 							{/each}
                         </div>
@@ -69,7 +69,7 @@
 							{#if game.displayinfo.selectionzone=='rolecards'}
 								{#each game.stacks.rolecards as card}
 								<div>
-									<img on:click="choosewrapper(card)" on:tap="choosewrapper(card)" on:touchmove="move(event, './images/'+card.type+'100.png')" on:touchstart="drag(event,card)" on:touchend="drop(event)" class="{(game.displayinfo.selectionzone=='rolecards') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}" src="./images/{card.type}100.png" alt="{card.name}">
+									<img on:click="choosewrapper(card,'rolecards')" on:tap="choosewrapper(card,'rolecards')" on:touchmove="move(event, './images/'+card.type+'100.png','rolecards')" on:touchstart="drag(event,card,'rolecards')" on:touchend="drop(event,'rolecards')" class="{(game.displayinfo.selectionzone=='rolecards') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}" src="./images/{card.type}100.png" alt="{card.name}">
 									<div class="pilecount"> {game.stacks.pilecount[card.type]}</div>
 								</div>
 								{/each}
@@ -86,37 +86,59 @@
 					{#if !game.displayinfo.center_or_planets}
 						<div class="flex zone centerrow">
 							{#each player.unsettled_planets as planet}
-                                <div on:click="choosewrapper(planet)" on:tap="choosewrapper(planet)" class=" unsettled {(game.displayinfo.selectionzone=='unsettled_planets') ? ( (planet.selected) ? 'selected' : 'selectable' ): 'bordered'}">
+                                <div on:click="choosewrapper(planet,'unsettled_planets')" on:tap="choosewrapper(planet,'unsettled_planets')" class=" unsettled {(game.displayinfo.selectionzone=='unsettled_planets') ? ( (planet.selected) ? 'selected' : 'selectable' ): 'bordered'}">
 									<img src="./images/{planet.type}back100.png" alt='{planet.settle_cost} {planet.type} {planet.conquer_cost}'>
                                     <div class="settle_cost"> {planet.settle_cost}</div>
                                     <div class="conquer_cost"> {planet.conquer_cost}</div>
 									<div class="hosted_colonies"> {planet.hosted_colonies.length} colonies</div>
                                 </div>
 							{/each}
-                            {#each [...player.settled_planets, ...player.conquered_planets] as planet}
-								<div on:click="choosewrapper(planet)" on:tap="choosewrapper(planet)" class="{(game.displayinfo.selectionzone=='settle_&_conquered_planets') ? ( (planet.selected) ? 'selected' : 'selectable' ): 'bordered'}">
-									<p> {planet.name}</p>
-									<p> {planet.type}</p>
-									<p> {planet.production_zones.length} production zones</p>
-									<p> +{planet.handsize_modifier} handsize</p>
-									{#if planet.icons.survey>0}
-										<p> {planet.icons.survey} survey</p>
-									{/if}
-									{#if planet.icons.warfare>0}
-										<p> {planet.icons.warfare} warfare</p>
-									{/if}
-									{#if planet.icons.colonize>0}
-										<p> {planet.icons.colonize} colonize</p>
-									{/if}
-									{#if planet.icons.produce>0}
-										<p> {planet.icons.produce} produce</p>
-									{/if}
-									{#if planet.icons.trade>0}
-										<p> {planet.icons.trade} trade</p>
-									{/if}
-									{#if planet.icons.research>0}
-										<p> {planet.icons.research} research</p>
-									{/if}
+							{#each [...player.settled_planets, ...player.conquered_planets] as planet}
+							<!-- if actingplayer.activerole or activeaction == trade and has weapons emporium as a permanent-->
+							<!-- display psudeo planets that host a fighter resource that can be traded -->
+								<div on:click="choosewrapper(planet,'settled_&_conquered_planets')" on:tap="choosewrapper(planet,'settled_&_conquered_planets')" class="{(game.displayinfo.selectionzone=='settled_&_conquered_planets') ? ( (planet.selected) ? 'selected' : 'selectable' ): 'bordered'}">
+									<div  class="planetfront" style="font-size: 160%" >
+										<img src="./images/{planet.type}100.png" alt='{planet.settle_cost} {planet.type} {planet.conquer_cost}'>	
+										<!-- style="background-image: url('./images/{option.type}100.png')" -->
+										<!-- icons -->
+										<div class="planetfrontinfo">
+											{#if planet.icons.survey > 0}
+												<img src="./images/surveyicon100.png"  alt="survey"><br>
+											{/if}
+											{#if planet.icons.warfare > 0}
+												<img src="./images/warfareicon100.png"  alt="warfare"><br>
+											{/if}
+											{#if planet.icons.colonize > 0}
+												<img src="./images/colonizeicon100.png"  alt="colonize"><br>
+											{/if}
+											{#if planet.icons.research > 0}
+												<img src="./images/researchicon100.png"  alt="research"><br>
+											{/if}
+											{#if planet.icons.trade > 0}
+												<img src="./images/tradeicon100.png"  alt="trade"><br>
+											{/if}
+											{#if planet.icons.produce > 0}
+												<img src="./images/produceicon100.png"  alt="produce"><br>
+											{/if}
+											<!-- production zones -->
+											{#each planet.production_zones as zone}
+												<img src="./images/{zone.type}productionzoneicon.png"  alt="{zone.type} zone"><br>
+											{/each}
+											<!-- hand size mods -->
+											{#if planet.handsize_modifier > 0}
+												<img src="./images/handsizeicon100.png"  alt="produce"><br>
+											{/if}
+											<!-- influence value -->
+											<div>
+												{planet.influence_value}
+											</div>
+											<img src="./images/influenceicon.png"  alt="influence">
+											<!-- name  -->
+											<div>
+												{planet.name}
+											</div>
+										</div>
+									</div>
 								</div>
                             {/each}
 						</div>
@@ -124,18 +146,11 @@
 					<!-- played cards-->
 					<div id="playedcards" class="flex zone playedcards" >
 						{#if game.displayinfo.showoptiontoskip}
-							<div style="margin-right:auto" class="selectable" on:click="choose([{name:'Skip'}])" on:tap="choose([{name:'Skip'}])">[Choose None]</div>
+							<div style="margin-right:auto" class="selectable pass" on:click="choose([{name:'Skip'}])" on:tap="choose([{name:'Skip'}])">[Choose None]</div>
 						{:else}
-							<div style="margin-right:auto" class="bordered">[____]</div>
+							<div style="margin-right:auto" class="bordered pass">[____]</div>
 						{/if}
-						{#each player.limbo as card}
-							<!-- {#if game.displayinfo.selectionzone=='hand'}
-								{#if card.research_cost !== undefined}
-									<img src="{card.imgurl}"  alt="{card.name}" on:touchstart="drag(event, card)" on:touchend="drop(event)" on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}">
-								{:else}
-									<img src="./images/{card.type}100.png" alt="{card.name}" on:touchstart="drag(event,card)" on:touchend="drop(event)" on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'selected' : 'selectable' ): 'bordered'}">
-								{/if}
-							{:else} -->
+						{#each game.players[game.acting_player_index].limbo as card}
 								{#if card.research_cost !== undefined}
 								<div class="bordered">
 									<img class="minicard" src="{card.imgurl}"  alt="{card.name}">
@@ -148,13 +163,13 @@
 							<!-- {/if} -->
 						{/each}
 						{#if game.passp }
-							<div style="margin-left:auto" class="selectable" on:click="pass_priority()"on:tap="pass_priority()">[Pass to <br> Next Player]</div>
+							<div style="margin-left:auto" class="selectable pass" on:click="pass_priority()"on:tap="pass_priority()">[Pass to <br> Next Player]</div>
 						{:elseif game.passt}
-							<div style="margin-left:auto" class="selectable" on:click="pass_turn()" on:tap="pass_turn()">[End Turn]</div>
+							<div style="margin-left:auto" class="selectable pass" on:click="pass_turn()" on:tap="pass_turn()">[End Turn]</div>
 						{:elseif game.displayinfo.allowformultipleselections && game.choices.length>0}
-							<div style="margin-left:auto" class="selectable" on:click="choose(game[game.displayinfo.choicelabel])" on:tap="choose(game[game.displayinfo.choicelabel])">[Choose Selected]</div>
+							<div style="margin-left:auto" class="selectable pass" on:click="choose(game[game.displayinfo.choicelabel])" on:tap="choose(game[game.displayinfo.choicelabel])">[Choose Selected]</div>
 						{:else}
-							<div class="bordered" >[______]</div>
+							<div class="bordered pass" >[______]</div>
 						{/if}
 					</div>
 					<div class="messagetoplayer bordered">{game.messagetoplayer[game.messagetoplayer.length-1]}</div>
@@ -165,9 +180,9 @@
 							{#each player.hand as card}
 								{#if game.displayinfo.selectionzone=='hand'}
 									{#if card.research_cost !== undefined}
-										<img src="{card.imgurl}"  alt="{card.name}" on:touchstart="drag(event, card)" on:touchend="drop(event)" on:touchmove="move(event, card.imgurl)" on:click="choosewrapper(card)" on:tap="choosewrapper(card)" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'hidden' : 'selectable' ): 'bordered'}">
+										<img src="{card.imgurl}"  alt="{card.name}" on:touchstart="drag(event, card,'hand')" on:touchend="drop(event,'hand')" on:touchmove="move(event, card.imgurl,'hand')" on:click="choosewrapper(card,'hand')" on:tap="choosewrapper(card,'hand')" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'hidden' : 'selectable' ): 'bordered'}">
 									{:else}
-										<img src="./images/{card.type}100.png" alt="{card.name}" on:touchstart="drag(event,card)" on:touchend="drop(event)" on:click="choosewrapper(card)" on:touchmove="move(event, './images/'+card.type+'100.png')" on:tap="choosewrapper(card)" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'hidden' : 'selectable' ): 'bordered'}">
+										<img src="./images/{card.type}100.png" alt="{card.name}" on:touchstart="drag(event,card,'hand')" on:touchend="drop(event,'hand')" on:click="choosewrapper(card,'hand')" on:touchmove="move(event, './images/'+card.type+'100.png','hand')" on:tap="choosewrapper(card,'hand')" class="cutcard {(game.displayinfo.selectionzone=='hand') ? ( (card.selected) ? 'hidden' : 'selectable' ): 'bordered'}">
 									{/if}
 								{:else}
 									{#if card.research_cost !== undefined}
@@ -185,11 +200,70 @@
 		{/each}
 		<!-- game.options -->
 		{#if game.displayinfo.selectionzone=='options'}
-			<div class="options">
+			<div class="{( game.options[0] !== undefined && game.options[0].type !== undefined) ? 'talloptions' : 'options'}">
 				{#each game.options as option}
-					<div style="width:50%; color:blue" class="{(game.displayinfo.selectionzone=='options') ? ( (option.selected) ? 'selected' : 'selectable' ): 'bordered'}" on:click="choosewrapper(option)" on:tap="choosewrapper(option)">
-						{option.name}
+					{#if option.type !== undefined}
+						
+					<div class="bordered flex {(game.displayinfo.selectionzone=='options') ? ( (option.selected) ? 'selected' : 'selectable' ): 'bordered'}" on:click="choosewrapper(option,'options')" on:tap="choosewrapper(option,'options')" >
+						<div  class="planetfront" >
+							<img src="./images/{option.type}100.png" alt='{option.settle_cost} {option.type} {option.conquer_cost}'>	
+							<!-- style="background-image: url('./images/{option.type}100.png')" -->
+							<!-- icons -->
+							<div class="planetfrontinfo">
+								{#if option.icons.survey > 0}
+									<img src="./images/surveyicon100.png"  alt="survey"><br>
+								{/if}
+								{#if option.icons.warfare > 0}
+									<img src="./images/warfareicon100.png"  alt="warfare"><br>
+								{/if}
+								{#if option.icons.colonize > 0}
+									<img src="./images/colonizeicon100.png"  alt="colonize"><br>
+								{/if}
+								{#if option.icons.research > 0}
+									<img src="./images/researchicon100.png"  alt="research"><br>
+								{/if}
+								{#if option.icons.trade > 0}
+									<img src="./images/tradeicon100.png"  alt="trade"><br>
+								{/if}
+								{#if option.icons.produce > 0}
+									<img src="./images/produceicon100.png"  alt="produce"><br>
+								{/if}
+								<!-- production zones -->
+								{#each option.production_zones as zone}
+									<img src="./images/{zone.type}productionzoneicon.png"  alt="{zone.type} zone"><br>
+								{/each}
+								<!-- hand size mods -->
+								{#if option.handsize_modifier > 0}
+									<img src="./images/handsizeicon100.png"  alt="produce"><br>
+								{/if}
+								<!-- influence value -->
+								<div>
+									{option.influence_value}
+								</div>
+								<img src="./images/influenceicon.png"  alt="influence">
+								<!-- name  -->
+								<div>
+									{option.name}
+								</div>
+							</div>
+						</div>
+						<div>
+							<!-- colonize cost -->
+							<!-- conquer cost -->
+							<div class="mini_unsettled">
+								<img src="./images/{option.type}back100.png" alt='{option.settle_cost} {option.type} {option.conquer_cost}'>
+								<div class="unsettled_costs">
+									<span class="mini_settle_cost"> {option.settle_cost}</span>
+									<span class="mini_conquer_cost"> {option.conquer_cost}</span>
+								</div>
+							</div>
+						</div>
 					</div>
+					{:else}
+						<div class="pass {(game.displayinfo.selectionzone=='options') ? ( (option.selected) ? 'selected' : 'selectable' ): 'bordered'}" on:click="choosewrapper(option,'options')" on:tap="choosewrapper(option,'options')">
+							{option.name}
+						</div>
+					{/if}
 				{/each}
 			</div>
 		{/if}
@@ -198,8 +272,8 @@
 <script>
 	export default {
 		methods:{
-			choosewrapper(c){
-				if (app.get().lobby.screenname == app.get().game.acting_player.name || !app.get().lobby.online){
+			choosewrapper(c,zone){
+				if ((app.get().game.displayinfo.selectionzone == zone) && (app.get().lobby.screenname == app.get().game.players[app.get().game.acting_player_index].name || !app.get().lobby.online)){
 					if (app.get().game.displayinfo.allowformultipleselections){
 						app.multiplechoose(c);
 					}
@@ -215,8 +289,8 @@
 					choice.selected=true;
 					if (choice.type!=='planet' && choice.type!=='fertile' && choice.type!=='metallic' && choice.type!=='advanced' && choice.name != 'Skip'){
 						choice.final_destination_label='discard';
-					 	game.acting_player.limbo.push(choice);
-						game.acting_player.hand = game.acting_player.hand.filter(
+					 	game.players[game.acting_player_index].limbo.push(choice);
+						game.players[game.acting_player_index].hand = game.players[game.acting_player_index].hand.filter(
 							(el)=>{ return el.identifier != choice.identifier}
 						)
 					}
@@ -229,8 +303,8 @@
 						game[game.displayinfo.choicelabel]  = game[game.displayinfo.choicelabel].filter(
 							(el)=>{ return el.identifier != choice.identifier}
 						);
-						game.acting_player.hand.push(choice);
-						game.acting_player.limbo = game.acting_player.limbo.filter(
+						game.players[app.get().game.acting_player_index].hand.push(choice);
+						game.players[app.get().game.acting_player_index].limbo = game.players[game.acting_player_index].limbo.filter(
 							(el)=>{ return el.identifier != choice.identifier}
 						)
 					}
@@ -266,27 +340,27 @@
                 game.displayinfo.choicelabel=choice_label;
 				//game.displayinfo.callback=callback;
                 if (field_label == 'hand'){
-                    choices = app.get().game.acting_player.hand;
+                    choices = app.get().game.players[app.get().game.acting_player_index].hand;
                 } else if (field_label == 'research') {
                     choices = app.get().game.research_deck;
                 } else if (field_label == 'discard'){
-                    choices = app.get().game.acting_player.discard;
+                    choices = app.get().game.players[app.get().game.acting_player_index].discard;
                 } else if (field_label == 'planets') {
                     choices = app.get().game.planet_deck;
                 } else if (field_label == 'rolecards'){
 					choices = app.get().game.stacks.rolecards;
 					game.displayinfo.center_or_planets = true;
                 } else if (field_label == 'unsettled_planets') {
-					choices = app.get().game.acting_player.unsettled_planets;
+					choices = app.get().game.players[app.get().game.acting_player_index].unsettled_planets;
 					game.displayinfo.center_or_planets = false;
                 } else if (field_label == 'settled_planets'){
-                    choices = app.get().game.acting_player.settled_planets;
+                    choices = app.get().game.players[app.get().game.acting_player_index].settled_planets;
 					game.displayinfo.center_or_planets = false;
                 } else if (field_label == 'conquered_planets'){
-                    choices = app.get().game.acting_player.conquered_planets;
+                    choices = app.get().game.players[app.get().game.acting_player_index].conquered_planets;
 					game.displayinfo.center_or_planets = false;
                 } else if (field_label == 'settled_&_conquered_planets'){
-                    choices = [...app.get().game.acting_player.settled_planets, ...app.get().game.acting_player.conquered_planets];
+                    choices = [...app.get().game.players[app.get().game.acting_player_index].settled_planets, ...app.get().game.players[app.get().game.acting_player_index].conquered_planets];
 					game.displayinfo.center_or_planets = false;
 
                 } else if (field_label == 'options') {
@@ -367,6 +441,7 @@
 							player.deck.push(player.discard.pop());
 						}
 						player.deck=app.knuthshuffle(player.deck);
+						player.hand.push(player.deck.pop());
 					}
 				}
 				return player;
@@ -508,6 +583,7 @@
 				let game = app.get().game;
 				let _player = {
 					'id':_id,
+					'actionrolesequence':'ar', //can be ar. ra, aar, ara, raa
 					'specialization':'',
 					'available':true,
 					'rounds':0,
@@ -544,7 +620,7 @@
 					settled:false,
 					conquer_cost:2,
 					production_zones:[],
-					inluence_value:2,
+					influence_value:2,
 					icons:{'survey':0,'warfare':0,'colonize':0,'produce':0,'trade':0,'research':0,},
 					handsize_modifier:0,
 					hosted_colonies:[],
@@ -589,7 +665,7 @@
 				app.generateplanet('TANKAHSHIN').metallic().settle(4).conquer(5).influence(3).zone('red').icon('warfare'),
 				app.generateplanet('VOSON').metallic().settle(4).conquer(5).influence(3).zone('red').icon('survey'),
 				app.generateplanet('PINK SONAR').metallic().settle(5).conquer(4).influence(3).zone('red').icon('survey'),
-				app.generateplanet("OVERLORD BETZEL'S DOMAIN").metallic(3).settle(6).conquer().influence(4)            .icon('warfare'),
+				app.generateplanet("OVERLORD BETZEL'S DOMAIN").metallic().settle(3).conquer(6).influence(4)            .icon('warfare'),
 				app.generateplanet('8910 SPIELEN').metallic().settle(4).conquer(5).influence(2).zone('red')               .handsize(1),
 				app.generateplanet('IDROYOS').metallic().settle(3).conquer(6).influence(5),
 				app.generateplanet('ERKAM-W').metallic().settle(5).conquer(4).influence(3).zone('red').icon('warfare')
@@ -608,8 +684,8 @@
 			},
 			cleanup(){
 				let game = app.get().game;
-				let source_array = game.acting_player.limbo;
-				let destinations_host = game.acting_player;
+				let source_array = game.players[app.get().game.acting_player_index].limbo;
+				let destinations_host = game.players[app.get().game.acting_player_index];
 				let iterations = source_array.length;
 				for (let i = 0; i < iterations; i++){
 					let elem = source_array.pop();
@@ -659,29 +735,46 @@
 				app.send({'game':game});
 			},
 			settle_colonies (planet, possessing_player){
-				for (let i = 0; i < planet.hosted_colonies.length; i++){
-					possessing_player.discard.push(planet.hosted_colonies.pop());
+				let planets = [...possessing_player.settled_planets,...possessing_player.conquered_planets];
+				let reduction = 0;
+				let game = app.get().game;
+				for (let p in planets){
+					reduction+= planets[p].icons.colonize;
 				}
-				let temp_array = [];
-				let removed = false;
-				let filtered_item = null
-				for (let i = 0; i < possessing_player.unsettled_planets.length; i++){
-					let elem = possessing_player.unsettled_planets.pop();
-					if (planet.identifier == elem.identifier && !removed) {
-						elem.settled=true;
-						possessing_player.settled_planets.push(elem);
-						removed=true;
-						filtered_item = elem;
+				for (let p in game.players[game.leading_player_index].permanents){
+					reduction+= permanents[p].icons.colonize;
+				}
+				if (planet.settle_cost - reduction <= planet.hosted_colonies.length){
+					if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='abundance'} ).length != 0){
+						if (planet.production_zones.length != 0){
+							planet.production_zones = planet.production_zones.map((pz)=>{return {type:pz.type,filled:true};})
+						}
 					}
-					else { temp_array.push(elem) }; 
+					for (let i in planet.hosted_colonies){
+						possessing_player.discard.push(planet.hosted_colonies.pop());
+					}
+					let temp_array = [];
+					let removed = false;
+					let filtered_item = null
+					for (let i = 0; i < possessing_player.unsettled_planets.length; i++){
+						let elem = possessing_player.unsettled_planets.pop();
+						if (planet.identifier == elem.identifier && !removed) {
+							elem.settled=true;
+							possessing_player.settled_planets.push(elem);
+							removed=true;
+							filtered_item = elem;
+						}
+						else { temp_array.push(elem) }; 
+					}
+					for (let i in temp_array){
+						possesing_player.unsettled_planets.push(temp_array[i]);
+					}
 				}
-				for (let i in temp_array){
-					possesing_player.unsettled_planets.push(temp_array[i]);
-				}
+				
 			},
 			//pass_turn leadingplayer->nextplayer
 			pass_turn(){
-				if (!app.get().lobby.online || app.get().lobby.screenname == app.get().game.actingplayer.name ){
+				if (!app.get().lobby.online || app.get().lobby.screenname == app.get().game.players[app.get().game.acting_player_index].name ){
 					//app.togglepasstoplayer();
 					let game = app.get().game;
 					game.passt=false;
@@ -695,7 +788,7 @@
 			},
 			//pass_priority actingplayer->nextplayer
 			pass_priority(){
-				if (!app.get().lobby.online || app.get().lobby.screenname == app.get().game.actingplayer.name ){
+				if (!app.get().lobby.online || app.get().lobby.screenname == app.get().game.players[app.get().game.acting_player_index].name ){
 					//app.togglepasstoplayer();
 					let game = app.get().game;
 					game.passp=false;
@@ -791,8 +884,7 @@
 			},
 			//survey deck->hand
 			survey(player){
-				app.draw(player);
-				app.draw(player);
+				player = app.draw(player,2);
 			},
 			//colonize hand/limbo->host
 			colonize(planet, source_array, card, isRole=false){
@@ -800,7 +892,7 @@
 				let removed = false;
 				let filtered_item = null;
 				let totalIteration = 1;
-				if (isRole){ totalIteration = app.get().game.acting_player.boostingicons.colonize; }
+				if (isRole){ totalIteration = app.get().game.players[app.get().game.acting_player_index].boostingicons.colonize; }
 				let iterations = source_array.length;
 				for (let i = 0; i < iterations; i++){
 					let elem = source_array.pop();
@@ -826,9 +918,21 @@
 			},
 			//conquer player_starship_pile->starship_pile, player_unconquered_planets->player_conquered_planets
 			conquer(planet, player){
+				if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='scorched_earth_policy'} ).length != 0){
+						planet.production_zones = [];
+						planet.conquer_cost -= 2;
+						if (planet.conquer_cost < 0) {
+							planet.conquer_cost = 0;
+						}
+					}
 				if (player.starfighters.small >= planet.conquer_cost){
+					if (app.get().game.players[app.get().game.acting_player_index].permanents.filter( (el)=>{return el.type=='abundance'} ).length != 0){
+						if (planet.production_zones.length != 0){
+							planet.production_zones = planet.production_zones.map((pz)=>{return {type:pz.type,filled:true};})
+						}
+					}
 					player.starfighters.small -= planet.conquer_cost;
-					planet = app.select_via_indentifier(player.unsettled_planets, planet.identifier);
+					planet = app.select_via_identifier(player.unsettled_planets, planet.identifier);
 					planet.conquered=true;
 					player.conquered_planets.push(planet);
 				}
@@ -852,7 +956,8 @@
 				let temp_array = [];
 				let removed = false;
 				let selected_item = null;
-				for (let i = 0; i < source.length; i++){
+				let iterations = source.length;
+				for (let i = 0; i < iterations; i++){
 					let elem = source.pop();
 					if (identifier == elem.identifier && !removed) {
 						selected_item = elem;
@@ -863,7 +968,7 @@
 				for (let i in temp_array){
 					source.push(temp_array[i]);
 				}
-				return [selected_item, source];
+				return selected_item;
 			},
 			
 			boostrolewithcards(choices, callback=null){
@@ -872,9 +977,9 @@
 				let iterations = cards.length;
 				if (cards[0].name!='Skip'){
 					for (let i = 0; i < iterations; i++){
-						game.acting_player.boostingicons[cards[i].type]++;
+						game.players[app.get().game.acting_player_index].boostingicons[cards[i].type]++;
 						app.set({'game':game});
-						app.play(game.acting_player.hand,game.acting_player.limbo,'discard',cards[i].identifier);
+						app.play(game.players[app.get().game.acting_player_index].hand,game.players[app.get().game.acting_player_index].limbo,'discard',cards[i].identifier);
 					}
 				}
 				app.set({'game':game});
@@ -888,13 +993,13 @@
 			},
 			performleaderrole(callback=null){
 				let game = app.get().game;
-				game.acting_player.activerole.role.role.leader(callback)
+				game.players[app.get().game.acting_player_index].activerole.role.role.leader(callback)
 				app.set({'game':game});
 			},
 			performfollowerrole(callback=null){
 				let game = app.get().game;
-				game.acting_player.activerole.set(game.leadingplayer.activerole.role);
-				game.acting_player.activerole.role.role.follower(callback);
+				game.players[game.acting_player_index].activerole.set(game.players[game.leading_player_index].activerole.role);
+				game.players[game.acting_player_index].activerole.role.role.follower(callback);
 				app.set({'game':game});
 			},
 			explore_planet(player){
@@ -909,7 +1014,7 @@
 				
 				let planet=game.choices[0];
 				player.unsettled_planets.push(planet);
-				[,player.limbo] = app.select_via_identifier(player.limbo, planet.identifier);
+				planet = app.select_via_identifier(player.limbo, planet.identifier);
 				let temparray = [];
 				let iterations = player.limbo.length
 				for (let i = 0; i >= iterations ; i++){  
@@ -921,16 +1026,18 @@
 						temparray.push(card);
 					}
 				}
-				player.limbo=temparray;
+				for (let el in temparray){
+					player.limbo.push(temparray.pop());
+				}
 				app.set({'game':game});
 			},
 			followcentercardrole(choices, callback=null){
 				let game = app.get().game;
 				let card = choices[0];
-				game.acting_player.activerole.set(card);
+				game.players[app.get().game.acting_player_index].activerole.set(card);
 				if (game.stacks.pilecount[card.type] >= 1){
-					game.acting_player.boostingicons[card.type]++;
-					game.acting_player.limbo.push(Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard'},game.stacks.rolecards[game.stacks[card.type]]));
+					game.players[app.get().game.acting_player_index].boostingicons[card.type]++;
+					game.players[app.get().game.acting_player_index].limbo.push(Object.assign({'identifier':app.generate_unique_identifier(), 'final_destination_label':'discard'},game.stacks.rolecards[game.stacks[card.type]]));
 					
 					game.stacks.pilecount[card.type]--;
 				}
@@ -942,14 +1049,14 @@
 				let game = app.get().game;
 				if(choices[0].name!="Skip"){
 					for (let i = 0; i < choices.length; i++){
-						app.discard(game.acting_player.hand, game.acting_player.discard, choices[i].identifier);
+						app.discard(game.players[app.get().game.acting_player_index].hand, game.players[app.get().game.acting_player_index].discard, choices[i].identifier);
 					}
 				}
 				let [,,...arr] = arguments;
 				app.set({'game':game});
 				callback(choices,arr);
 			},
-			phasefinishfunction(){
+			phasefinishfunction(send = false){
 				//check for game end condition
 				//if met, start a turn countdown to make sure everyone has had the same number of turns
 				//also track who started the game
@@ -957,11 +1064,9 @@
 				// just check that all are equal
 				let game = app.get().game;
 				game.currentphase = (game.currentphase + 1) % game.gamesequence.length; 
-				let index = 0;
 				let jsobj = game.gamesequence[game.currentphase];
-				let nextphase, label;
+				let nextphase;
 				for (let key in jsobj){
-					label = key;
 					game.messagetoplayer.push(key);
 					nextphase=jsobj[key];
 				}
@@ -972,27 +1077,54 @@
 				// 	app.totalinfluence();
 				// 	nextphase = app.endgame;
 				// }
-				app.send({'game':game});
+				if (send){
+					app.send({'game':game});
+				} else {
+					app.set({'game':game});
+				}
 				game.nextphase();
 			},
 			generategamesequence(){
 				let game=app.get().game;
 				let _gamesequence=[];
 				_gamesequence = app.gshelper([...game.gamephases[0].start],_gamesequence);
-				_gamesequence = app.gshelper([...game.gamephases[1].action],_gamesequence);
+				//ar. ra, aar, ara, raa
+				_gamesequence = app.gshelper([...game.gamephases[1].action],_gamesequence, ()=>{return app.get().game.players[app.get().game.acting_player_index].actionrolesequence=='aar'});
+				_gamesequence = app.gshelper([...game.gamephases[1].action],_gamesequence, ()=>{return app.get().game.players[app.get().game.acting_player_index].actionrolesequence=='aar' || app.get().game.players[app.get().game.acting_player_index].actionrolesequence=='ar'  });
+				
 				_gamesequence = app.gshelper([...game.gamephases[2].role],_gamesequence);
 				_gamesequence = app.gshelper([...game.gamephases[3].lead],_gamesequence);
 				for (let i = 1; i<game.number_of_players; i++){
 					_gamesequence = app.gshelper([...game.gamephases[4].follow],_gamesequence);
 				}
+				_gamesequence = app.gshelper([...game.gamephases[1].action],_gamesequence, ()=>{return app.get().game.players[app.get().game.acting_player_index].actionrolesequence=='raa' || app.get().game.players[app.get().game.acting_player_index].actionrolesequence=='ara'  });
+				_gamesequence = app.gshelper([...game.gamephases[1].action],_gamesequence, ()=>{return app.get().game.players[app.get().game.acting_player_index].actionrolesequence=='raa'});
+
 				_gamesequence = app.gshelper([...game.gamephases[5].discard],_gamesequence);
 				_gamesequence = app.gshelper([...game.gamephases[6].cleanup],_gamesequence);
 				game.gamesequence = _gamesequence;
 				app.set({'game':game,'phases':_gamesequence});
 			},
-			gshelper(source_array, destination_array){
+			gshelper(source_array, destination_array, wrapperfunction=false){
 				for (let i in source_array){
-					destination_array.push(source_array[i]);
+					if (wrapperfunction){
+						let jsobj = source_array[i];
+						let func,key;
+						let item = {};
+						for (key in jsobj){
+							func=jsobj[key];
+						}
+						item[key] = ()=>{
+							if (wrapperfunction()){
+								func();
+							} else {
+								app.phasefinishfunction();
+							}
+						}
+						destination_array.push(item);
+					} else {
+						destination_array.push(source_array[i]);
+					}
 				}
 				return destination_array;
 			},
@@ -1016,7 +1148,7 @@
 							let callbackwrapper = ()=>{ 	
 								document.removeEventListener('choicemade',callbackwrapper); 
 								let game= app.get().game;
-								app.politics(game.acting_player.activeaction, game.choices[0], game.acting_player);
+								app.politics(game.players[game.acting_player_index].activeaction, game.choices[0], game.players[game.acting_player_index]);
 								callback();
 							};	
 							let game= app.get().game;
@@ -1047,6 +1179,7 @@
 				let sets = app.get().lobby.sets;
 				//returns {game_id, game_name, number_of_players, slots}
 				let ws = new WebSocket(app.get().lobby.url);
+				//let ws = new io(app.get().lobby.url);
 				app.initgame(number_of_players);
 				ws.onmessage = (evt) => {
 					// on receiving a message, add it to the list of messages
@@ -1060,16 +1193,17 @@
 					app.set({'game':game,'lobby':lobby});
 					ws.close();
 					//app.enterexistinggame(app.get().game);
-				}
+				};
 				ws.onopen = (evt) => {
 					if (ws.readyState==1){
 						ws.send(JSON.stringify({'header':'newgame',game:app.get().game,sets:sets,number_of_players:number_of_players}));
 					}
-				}
+				};
 			},
 			fetchexistinggames(){
 				//returns list of [{game_id, game_name, number_of_players, slots},...]
 				let ws = new WebSocket(app.get().lobby.url);
+				//let ws = new io(app.get().lobby.url);
 				ws.onmessage = (evt) => {
 					let game = app.get().game;
 					game.currentphase = -2;
@@ -1089,15 +1223,15 @@
 			enterexistinggame(g){
 				let game_id = g.game_id;
 				let slot = 0, player_name = app.get().lobby.screename;
-				for (let i in g.players){
+				for (let i = 0; i <g.players.length; i++){
 					if (g.players[i].available){
 						slot = i;
-						//player_name = i;
 						break;
 					}
 				}
 				app.initgame(g.number_of_players);
 				let ws = new WebSocket(app.get().lobby.url);
+				//let ws = new io(app.get().lobby.url);
 				ws.onmessage = evt => {
 					// on receiving a message, add it to the list of messages
 					let game = JSON.parse(evt.data);
@@ -1127,7 +1261,7 @@
 				app.generategamesequence();
 				//app.makews('ws://192.168.1.6:3030');
 				//'ws://temperate-isle.herokuapp.com/:3030';
-				app.makews('ws://temperate-isle.herokuapp.com:3030');
+				app.makews(location.origin.replace(/^http/, 'ws'));
 				app.generate_game_id();
 				//app.phasefinishfunction();
 			},
@@ -1154,8 +1288,14 @@
 			makews(){
 				let game = app.get().game;
 				let ws = new WebSocket(app.get().lobby.url);
+				//let ws = new io(app.get().lobby.url);
 				let i = 0;
-
+				let ping = ()=>{
+					setTimeout(()=>{
+						ws.send(JSON.stringify({header:'ping'}));
+						ping();
+					},2000);
+				};
 				ws.onmessage = evt => {
 					// on receiving a message, add it to the list of messages
 					let game = JSON.parse(evt.data);
@@ -1208,14 +1348,14 @@
 				game.displayinfo.dragged=item;
 				app.set({'game':game});
 			},
-			drop(evt){
+			drop(evt,zone){
 				let el = document.getElementById('playedcards').getBoundingClientRect();
 				if (evt.changedTouches[0].clientX > el.left
 				&& evt.changedTouches[0].clientX < el.left+ el.width
 				&& evt.changedTouches[0].clientY < el.top+el.height
 				&& evt.changedTouches[0].clientY > el.top){
 					let game = app.get().game;
-					if(game.displayinfo.dragged!==null) app.choosewrapper(game.displayinfo.dragged);
+					if(game.displayinfo.dragged!==null) app.choosewrapper(game.displayinfo.dragged,zone);
 					game.displayinfo.dragged!=null;
 					app.set({'game':game});
 

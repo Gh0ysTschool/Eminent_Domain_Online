@@ -419,7 +419,8 @@
 				let winner = '';
 				let highest = scores[0];
 				app.get().game.players.map((e) => { if ( highest < e.influence ) { winner = e.name; highest = e.influence; } } );
-				app.set({'game':{...app.get().game, 'winner':winner }});
+				app.send({'game':{...app.get().game, 'winner':winner }});
+				app.get().ws.send(JSON.stringify({...app.get().game,header:'remove'}));
 			},
 			checkforendgame(){
 				let depletedstacks = 0;

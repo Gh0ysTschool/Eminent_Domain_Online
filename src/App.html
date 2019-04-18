@@ -158,11 +158,11 @@
 						{#each game.players[game.acting_player_index].limbo as card}
 								{#if card.research_cost !== undefined}
 								<div class="bordered">
-									<img class="minicard" src="{card.imgurl}"  alt="{card.name}">
+									<img class="minicard" src="{card.imgurl}"  alt="{card.name}" on:click="unchoose(card)" on:tap="unchoose(card)">
 								</div>
 								{:elseif card.type != "advanced" && card.type != "fertile" && card.type != "metallic"}
 									<div class="bordered">
-										<img class="minicard" src="./images/{card.type}100.png"  alt="{card.name}">
+										<img class="minicard" src="./images/{card.type}100.png"  alt="{card.name}" on:click="unchoose(card)" on:tap="unchoose(card)">
 									</div>
 								{/if}
 							<!-- {/if} -->
@@ -332,6 +332,19 @@
 						'game':game
 					});
 					app.phasefinishfunction();
+				}
+			},
+			unchoose(choice){
+				if ((app.get().lobby.screenname == app.get().game.players[app.get().game.acting_player_index].name || !app.get().lobby.online)){
+					let game = app.get().game;
+					if ( game[game.displayinfo.choicelabel].includes(choice) ) {
+						choice.selected=false;
+						game.players[game.acting_player_index].limbo = game.players[game.acting_player_index].limbo.filter( (el) => {return el.identifier != choice.identifier});
+						game[game.displayinfo.choicelabel] = game[game.displayinfo.choicelabel].filter( (el) => {return el.identifier != choice.identifier});
+						choice.final_destination_label='';
+						game.players[game.acting_player_index].hand.push(choice);
+						app.set({game:game});
+					}
 				}
 			},
             offer (
@@ -843,6 +856,17 @@
 						}
 					}
 				}
+				//loop through planet in acting player thing and set it
+				// for planet in args
+				// playerplanets.filter where id not equal id
+				// afterloop, append arg planets
+				for (let i in planets){
+					let p = planets[i];
+					game.players[game.acting_player_index].settled_planets = game.players[game.acting_player_index].settled_planets.filter((e)=>{return e.identifier!=p.identifier}); 
+					game.players[game.acting_player_index].conquered_planets = game.players[game.acting_player_index].conquered_planets.filter((e)=>{return e.identifier!=p.identifier}); 
+				}
+				game.players[game.acting_player_index].settled_planets = [...game.players[game.acting_player_index].settled_planets,...planets];
+				game.players[game.acting_player_index].conquered_planets = [...game.players[game.acting_player_index].conquered_planets,...planets];
 				app.set({'game':game});
 				return prd;
 			},
@@ -863,6 +887,11 @@
 						}
 					}
 				}
+				for (let i in planets){
+					let p = planets[i];
+					game.players[game.acting_player_index].planets = game.players[game.acting_player_index].planets.filter((e)=>{return e.identifier!=p.identifier}); 
+				}
+				game.players[game.acting_player_index].planets = [...game.players[game.acting_player_index].planets,...planets];
 				app.set({'game':game});
 				return prd;
 			},
@@ -1283,9 +1312,19 @@
 				app.generategamesequence();
 				//app.makews('ws://192.168.1.6:3030');
 				//'ws://temperate-isle.herokuapp.com/:3030';
-				app.makews(location.origin.replace(/^http/, 'ws'));
-				if (!app.get().lobby.online) app.generate_game_id();
+				if (app.get().lobby.online) app.makews(location.origin.replace(/^http/, 'ws'));
+				if (!app.get().lobby.online) {
+					app.generate_game_id();
+					app.generate_player_names();
+				}
 				//app.phasefinishfunction();
+			},
+			generate_player_names(){
+				let game = app.get().game;
+				for (let i in game.players){
+					game.players[i].name ='Player '+(i+1);
+				}
+				app.set({game:game});
 			},
 			toggle_center_or_planets(){
 				let game=app.get().game;

@@ -259,6 +259,7 @@ button:focus {
 	overflow-x:scroll;
 	position:absolute;
 	top:55%;
+	justify-content: flex-start;
 }
 .minicard{
 	height:100%;

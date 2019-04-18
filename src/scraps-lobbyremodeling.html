@@ -1,0 +1,53 @@
+  
+{#if game.currentphase==-4}
+<div class="playercountselector">
+	<p on:click="phaseincrement()" on:tap="phaseincrement()">Start a New Online Game</p>
+	<p on:click="fetchexistinggames()" on:tap="fetchexistinggames()">Join an Existing Online Game</p>
+	<p on:click="newoffline()" on:tap="newoffline()">Start a New Offline Game</p>
+</div>
+{:elseif game.currentphase==-3}
+<div class="playercountselector">
+	<p> Choose your Game's number of Players</p>
+	<p on:click="newgame(2)" on:tap="newgame(2)">2</p>
+	<p on:click="newgame(3)" on:tap="newgame(3)">3</p>
+	<p on:click="newgame(4)" on:tap="newgame(4)">4</p>
+</div>
+{:elseif game.currentphase==-2}
+<div class="playercountselector">
+	<p> Choose your Screen Name</p>	
+	<input type="text" bind:value=lobby.screenname>
+	<p on:click="setplayername(lobby.screenname)" on:tap="setplayername(lobby.screenname)">Finished</p>
+</div>
+{:elseif game.currentphase==-1}
+	<div class="playercountselector">
+		<p>Choose a Game to Join</p>
+		{#each lobby.existinggames as g}
+        	<p on:click="enterexistinggame(g)" on:tap="enterexistinggame(g.game_id)">{g.game_id}</p>
+		{/each}
+    </div>
+    <script>
+    //select offline, online, rulebooks, options
+        //offline
+        //  new game
+        //      fill in game name
+        //      display player slots (activewithplayer, activewithai, inactive)
+        //      fill in names (default to player1,2,3,4,etc)
+        //      start game
+        //  continue game (if there is a paused game)
+        //      show games (name, players, player names, who's turn it is, what ifnluence is left, what centerrow cards are left)
+        //      start game
+        //online
+        //  check for an account
+        //      off sign up
+        //      sign-in
+        //          new game
+        //              fill in game name
+        //              display player slots (activewithplayer, activewithai, inactive)
+        //              fill in names (default to player1,2,3,4,etc)
+        //              waiting for pl;ayers...
+        //              start game
+        //          continue game (if there is a paused game)
+
+        //rulebooks
+        //options
+    </script>

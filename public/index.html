@@ -13,6 +13,7 @@
 <body>
 	<script src='bundle.js'></script>
 	<script>
+		window.addEventListener( 'touchmove', function(e) {e.preventDefault();})
 		if ('serviceWorker' in navigator) {
 			window.addEventListener('load', function() {
 				navigator.serviceWorker.register('/sw.js').then(function(registration) {
